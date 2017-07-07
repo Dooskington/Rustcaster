@@ -1,0 +1,7 @@
+[package]
+name = "raycaster"
+version = "0.1.0"
+authors = ["Declan Hopkins <hopkins.declan@gmail.com>"]
+
+[dependencies]
+sdl2 = "0.30"
