@@ -110,57 +110,7 @@ fn main() {
         //let view_distance: f32 = ((RENDER_WIDTH / 2) as f32) / f32::tan(FIELD_OF_VIEW / 2_f32);
 
         // Tick
-
-        for x in 0..(RENDER_WIDTH as usize) {
-            // Calculate the x coordinate of the ray in screen space
-            let ray_x: f32 = 2.0 * (x as f32 / RENDER_WIDTH as f32) - 1.0;
-
-            // Calculate the direction that the ray needs to go
-            let ray_direction_x: f32 = player_direction_x + (camera_plane_x * ray_x);
-            let ray_direction_y: f32 = player_direction_y + (camera_plane_y * ray_x);
-
-            let player_map_x: u32 = player_x as u32;
-            let player_map_y: u32 = player_y as u32;
-
-            // Length of ray from current position to next tile edge
-            let edge_distance_x: f32;
-            let edge_distance_y: f32;
-
-            // Length of ray from one tile edge to the next tile edge
-            let edge_delta_distance_x: f32 = f32::sqrt(1.0 + (ray_direction_y * ray_direction_y) / (ray_direction_x * ray_direction_x));
-            let edge_delta_distance_y: f32 = f32::sqrt(1.0 + (ray_direction_x * ray_direction_x) / (ray_direction_y * ray_direction_y));
-            let perp_edge_distance: f32;
-
-            // Information about the ray hit
-            let is_wall_hit: bool = false;
-            let wall_side: u8 = 0;
-
-            // Calculate the step and initial edge distance
-            let step_direction_x: i8;
-            let step_direction_y: i8;
-            if ray_direction_x < 0.0
-            {
-                step_direction_x = -1;
-                edge_distance_x = (player_x - player_map_x as f32) * edge_delta_distance_x;
-            }
-            else
-            {
-                step_direction_x = 1;
-                edge_distance_x = ((player_map_x + 1) as f32 - player_x) * edge_delta_distance_x;
-            }
-            if ray_direction_y < 0.0
-            {
-                step_direction_y = -1;
-                edge_distance_y = (player_y - player_map_y as f32) * edge_delta_distance_y;
-            }
-            else
-            {
-                step_direction_y = 1;
-                edge_distance_y = ((player_map_y + 1) as f32 - player_y) * edge_delta_distance_y;
-            }
-
-            // Perform DDA
-        }
+        // TODO
 
         last_tick_time = current_time;
 
@@ -171,14 +121,115 @@ fn main() {
             canvas.clear();
 
             render_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..(WINDOW_HEIGHT as usize) {
-                    for x in 0..(WINDOW_WIDTH as usize) {
+                for x in 0..(WINDOW_WIDTH as usize) {
+
+                    // Calculate the x coordinate of the ray in screen space
+                    let ray_x: f32 = 2.0 * (x as f32 / RENDER_WIDTH as f32) - 1.0;
+
+                    // Calculate the direction that the ray needs to go
+                    let ray_direction_x: f32 = player_direction_x + (camera_plane_x * ray_x);
+                    let ray_direction_y: f32 = player_direction_y + (camera_plane_y * ray_x);
+
+                    let mut ray_map_x: i32 = player_x as i32;
+                    let mut ray_map_y: i32 = player_y as i32;
+
+                    // Length of ray from current position to next tile edge
+                    let mut edge_distance_x: f32;
+                    let mut edge_distance_y: f32;
+
+                    // Length of ray from one tile edge to the next tile edge
+                    let edge_delta_distance_x: f32 = f32::sqrt(1.0 + (ray_direction_y * ray_direction_y) / (ray_direction_x * ray_direction_x));
+                    let edge_delta_distance_y: f32 = f32::sqrt(1.0 + (ray_direction_x * ray_direction_x) / (ray_direction_y * ray_direction_y));
+                    let perp_edge_distance: f32;
+
+                    // Information about the ray hit
+                    let mut is_wall_hit: bool = false;
+                    let mut wall_side: u8 = 0;
+
+                    // Calculate the step and initial edge distance
+                    let step_direction_x: i8;
+                    let step_direction_y: i8;
+                    if ray_direction_x < 0.0 {
+                        step_direction_x = -1;
+                        edge_distance_x = (player_x - ray_map_x as f32) * edge_delta_distance_x;
+                    }
+                    else {
+                        step_direction_x = 1;
+                        edge_distance_x = ((ray_map_x + 1) as f32 - player_x) * edge_delta_distance_x;
+                    }
+                    if ray_direction_y < 0.0 {
+                        step_direction_y = -1;
+                        edge_distance_y = (player_y - ray_map_y as f32) * edge_delta_distance_y;
+                    }
+                    else {
+                        step_direction_y = 1;
+                        edge_distance_y = ((ray_map_y + 1) as f32 - player_y) * edge_delta_distance_y;
+                    }
+
+                    // Perform DDA
+                    while !is_wall_hit {
+                        if edge_distance_x < edge_distance_y {
+                            edge_distance_x += edge_delta_distance_x;
+                            ray_map_x += step_direction_x as i32;
+                            wall_side = 0;
+                        }
+                        else {
+                            edge_distance_y += edge_delta_distance_y;
+                            ray_map_y += step_direction_y as i32;
+                            wall_side = 1;
+                        }
+
+                        is_wall_hit = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize] > 0;
+                    }
+
+                    // Calculate distance to ray hit, projected on camera plane (fixes the fish-eye effect)
+                    if wall_side == 0 {
+                        perp_edge_distance = (ray_map_x as f32 - player_x + (1.0 - step_direction_x as f32) / 2.0) / ray_direction_x;
+                    }
+                    else {
+                        perp_edge_distance = (ray_map_y as f32 - player_y + (1.0 - step_direction_y as f32) / 2.0) / ray_direction_y;
+                    }
+                    
+                    // Calculate the coordinates and height of the line that we need to render.
+                    let line_height: f32 = RENDER_HEIGHT as f32 / perp_edge_distance;
+
+                    let mut line_screen_start: f32 = (RENDER_HEIGHT as f32 / 2.0) - (line_height / 2.0);
+                    if line_screen_start < 0.0 { line_screen_start = 0.0; }
+
+                    let mut line_screen_end: f32 = line_screen_start + line_height;
+                    if line_screen_end >= RENDER_HEIGHT as f32 { line_screen_end = RENDER_HEIGHT as f32 - 1.0; }
+
+                    let tile: u32 = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize];
+
+                    let mut color: u32 = match tile {
+                        1 => { 255 },
+                        2 => { 200 },
+                        3 => { 150 },
+                        _ => { 0 }
+                    };
+
+                    if wall_side == 1
+                    {
+                        color /= 2;
+                    }
+
+                    for y in (line_screen_start as i32)..(line_screen_end as i32) {
+                        let offset = (y as usize * pitch) + (x * 3);
+
+                        buffer[offset] = color as u8;
+                        buffer[offset + 1] = 0 as u8;
+                        buffer[offset + 2] = 0 as u8;
+                    }
+
+                    /*
+                    for y in 0..(WINDOW_HEIGHT as usize) {
                         let offset = (y * pitch) + (x * 3);
 
-                        buffer[offset] = x as u8;
-                        buffer[offset + 1] = y as u8;
-                        buffer[offset + 2] = (x + y) as u8;
+                        buffer[offset] = color as u8;
+                        buffer[offset + 1] = 0 as u8;
+                        buffer[offset + 2] = 0 as u8;
                     }
+                    */
                 }
             }).unwrap();
 
