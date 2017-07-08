@@ -5,3 +5,5 @@ authors = ["Declan Hopkins <hopkins.declan@gmail.com>"]
 
 [dependencies]
 sdl2 = "0.30"
+time = "0.1.38"
+rand = "0.3.15"
