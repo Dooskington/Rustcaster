@@ -249,10 +249,6 @@ fn main() {
             player_direction_x = (player_direction_x * f32::cos(-rotation_speed_correct)) - (player_direction_y * f32::sin(-rotation_speed_correct));
             player_direction_y = (old_direction_x * f32::sin(-rotation_speed_correct)) + (player_direction_y * f32::cos(-rotation_speed_correct));
 
-            //let old_right_x = player_right_x;
-            //player_right_x = (player_right_x * f32::cos(-rotation_speed_correct)) - (player_right_y * f32::sin(-rotation_speed_correct));
-            //player_right_y = (old_right_x * f32::sin(-rotation_speed_correct)) + (player_right_y * f32::cos(-rotation_speed_correct));
-
             let old_plane_x = camera_plane_x;
             camera_plane_x = (camera_plane_x * f32::cos(-rotation_speed_correct)) - (camera_plane_y * f32::sin(-rotation_speed_correct));
             camera_plane_y = (old_plane_x * f32::sin(-rotation_speed_correct)) + (camera_plane_y * f32::cos(-rotation_speed_correct));
@@ -262,10 +258,6 @@ fn main() {
             let old_direction_x = player_direction_x;
             player_direction_x = (player_direction_x * f32::cos(rotation_speed_correct)) - (player_direction_y * f32::sin(rotation_speed_correct));
             player_direction_y = (old_direction_x * f32::sin(rotation_speed_correct)) + (player_direction_y * f32::cos(rotation_speed_correct));
-
-            //let old_right_x = player_right_x;
-            //player_right_x = (player_right_x * f32::cos(rotation_speed_correct)) - (player_right_y * f32::sin(rotation_speed_correct));
-            //player_right_y = (old_right_x * f32::sin(rotation_speed_correct)) + (player_right_y * f32::cos(rotation_speed_correct));
 
             let old_plane_x = camera_plane_x;
             camera_plane_x = (camera_plane_x * f32::cos(rotation_speed_correct)) - (camera_plane_y * f32::sin(rotation_speed_correct));
@@ -282,7 +274,6 @@ fn main() {
 
             render_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
                 for x in 0..(WINDOW_WIDTH as usize) {
-
                     // Calculate the x coordinate of the ray in screen space
                     let ray_x: f32 = 2.0 * (x as f32 / RENDER_WIDTH as f32) - 1.0;
 
@@ -354,10 +345,11 @@ fn main() {
                     let line_height: f32 = RENDER_HEIGHT as f32 / perp_edge_distance;
 
                     let mut line_screen_start: f32 = (RENDER_HEIGHT as f32 / 2.0) - (line_height / 2.0);
-                    if line_screen_start < 0.0 { line_screen_start = 0.0; }
+                    //if line_screen_start < 0.0 { line_screen_start = 0.0; }
 
                     let mut line_screen_end: f32 = line_screen_start + line_height;
-                    if line_screen_end >= RENDER_HEIGHT as f32 { line_screen_end = RENDER_HEIGHT as f32 - 1.0; }
+                    //if line_screen_end >= RENDER_HEIGHT as f32 { line_screen_end = RENDER_HEIGHT as f32 - 1.0; }
+                    //println!("line_screen_start = {}, line_screen_end = {}", line_screen_start, line_screen_end);
 
                     //let tile: u32 = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize];
 
@@ -374,9 +366,8 @@ fn main() {
                     wall_hit_point -= f32::floor(wall_hit_point);
 
                     // Calculate the texture x coordinate
-                    let mut texture_x: u32 = (wall_hit_point * TEXTURE_WIDTH as f32) as u32;
-                    texture_x = TEXTURE_WIDTH - texture_x - 1;
-                    if ((wall_side == 0) && (ray_direction_x > 0.0)) || ((wall_side == 1) && (ray_direction_y < 0.0)) {
+                    let mut texture_x: u32 = (wall_hit_point * (TEXTURE_WIDTH as f32 - 1.0)) as u32;
+                    if ((wall_side == 0) && (ray_direction_x < 0.0)) || ((wall_side == 1) && (ray_direction_y > 0.0)) {
                         texture_x = TEXTURE_WIDTH - texture_x - 1;
                     }
 
@@ -384,9 +375,9 @@ fn main() {
                         // pitch is WIDTH * bytes per pixel
                         let offset = (y * pitch) + (x * 3);
 
-                        if (y >= line_screen_start as usize) && (y < line_screen_end as usize) {
-                            let line_y: u32 = y as u32 - line_screen_start as u32; // this is wrong
-                            let mut texture_y: u32 = ((line_y as f32 / line_height) * (TEXTURE_HEIGHT - 1) as f32) as u32;
+                        if ((y as i32) >= line_screen_start as i32) && ((y as i32) < line_screen_end as i32) {
+                            let line_y: i32 = y as i32 - line_screen_start as i32;
+                            let texture_y: u32 = ((line_y as f32 / line_height) * (TEXTURE_HEIGHT - 1) as f32) as u32;
                             //if texture_y >= 63 { texture_y = 63;}
 
                             let texture_pixel_index = (texture_y as usize * TEXTURE_WIDTH as usize) + texture_x as usize;
@@ -406,7 +397,7 @@ fn main() {
                         else {
                             buffer[offset] = 0 as u8;
                             buffer[offset + 1] = 0 as u8;
-                            buffer[offset + 2] = 0 as u8;
+                            buffer[offset + 2] = 128 as u8;
                         }
 
                         // Texture test
