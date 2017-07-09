@@ -13,6 +13,10 @@ pub const MAP_WIDTH: u32 = 30;
 pub const MAP_HEIGHT: u32 = 30;
 pub const MAP_SIZE: usize = (MAP_WIDTH * MAP_HEIGHT) as usize;
 
+pub const TEXTURE_WIDTH: u32 = 64;
+pub const TEXTURE_HEIGHT: u32 = 64;
+pub const TEXTURE_SIZE: usize = (TEXTURE_WIDTH * TEXTURE_HEIGHT) as usize;
+
 pub const TWO_PI: f32 = (2_f64 * std::f64::consts::PI) as f32;
 pub const FIELD_OF_VIEW: f32 = (90_f64 * (std::f64::consts::PI / 180_f64)) as f32;
 
@@ -98,6 +102,18 @@ fn main() {
     let mut camera_plane_x: f32 = 1.0;
     let mut camera_plane_y: f32 = 0.0;
 
+    let mut texture: [u32; TEXTURE_SIZE] = [0; TEXTURE_SIZE];
+    for x in 0..TEXTURE_WIDTH { 
+        for y in 0..TEXTURE_HEIGHT {
+            let xor_color: u32 = (x * 256 / TEXTURE_WIDTH) ^ (y * 256 / TEXTURE_HEIGHT);
+            texture[((y * TEXTURE_WIDTH) + x) as usize] = 256 * xor_color;
+        }
+    }
+    
+    // DEBUG: set the start and end of the texture to white and red
+    //texture[0] = 16777215;
+    //texture[TEXTURE_WIDTH as usize - 1] = 16711680;
+
     // Engine loop
     let mut sdl_event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -162,6 +178,9 @@ fn main() {
         //let view_distance: f32 = ((RENDER_WIDTH / 2) as f32) / f32::tan(FIELD_OF_VIEW / 2_f32);
 
         let rotation_speed_correct = rotation_speed_radians * delta_time;
+
+        player_right_x = -player_direction_y;
+        player_right_y = player_direction_x;
 
         // Tick
         if input_up
@@ -230,9 +249,9 @@ fn main() {
             player_direction_x = (player_direction_x * f32::cos(-rotation_speed_correct)) - (player_direction_y * f32::sin(-rotation_speed_correct));
             player_direction_y = (old_direction_x * f32::sin(-rotation_speed_correct)) + (player_direction_y * f32::cos(-rotation_speed_correct));
 
-            let old_right_x = player_right_x;
-            player_right_x = (player_right_x * f32::cos(-rotation_speed_correct)) - (player_right_y * f32::sin(-rotation_speed_correct));
-            player_right_y = (old_right_x * f32::sin(-rotation_speed_correct)) + (player_right_y * f32::cos(-rotation_speed_correct));
+            //let old_right_x = player_right_x;
+            //player_right_x = (player_right_x * f32::cos(-rotation_speed_correct)) - (player_right_y * f32::sin(-rotation_speed_correct));
+            //player_right_y = (old_right_x * f32::sin(-rotation_speed_correct)) + (player_right_y * f32::cos(-rotation_speed_correct));
 
             let old_plane_x = camera_plane_x;
             camera_plane_x = (camera_plane_x * f32::cos(-rotation_speed_correct)) - (camera_plane_y * f32::sin(-rotation_speed_correct));
@@ -244,9 +263,9 @@ fn main() {
             player_direction_x = (player_direction_x * f32::cos(rotation_speed_correct)) - (player_direction_y * f32::sin(rotation_speed_correct));
             player_direction_y = (old_direction_x * f32::sin(rotation_speed_correct)) + (player_direction_y * f32::cos(rotation_speed_correct));
 
-            let old_right_x = player_right_x;
-            player_right_x = (player_right_x * f32::cos(rotation_speed_correct)) - (player_right_y * f32::sin(rotation_speed_correct));
-            player_right_y = (old_right_x * f32::sin(rotation_speed_correct)) + (player_right_y * f32::cos(rotation_speed_correct));
+            //let old_right_x = player_right_x;
+            //player_right_x = (player_right_x * f32::cos(rotation_speed_correct)) - (player_right_y * f32::sin(rotation_speed_correct));
+            //player_right_y = (old_right_x * f32::sin(rotation_speed_correct)) + (player_right_y * f32::cos(rotation_speed_correct));
 
             let old_plane_x = camera_plane_x;
             camera_plane_x = (camera_plane_x * f32::cos(rotation_speed_correct)) - (camera_plane_y * f32::sin(rotation_speed_correct));
@@ -340,42 +359,72 @@ fn main() {
                     let mut line_screen_end: f32 = line_screen_start + line_height;
                     if line_screen_end >= RENDER_HEIGHT as f32 { line_screen_end = RENDER_HEIGHT as f32 - 1.0; }
 
-                    let tile: u32 = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize];
+                    //let tile: u32 = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize];
 
-                    let mut color: u32 = match tile {
-                        1 => { 255 },
-                        2 => { 200 },
-                        3 => { 150 },
-                        _ => { 0 }
-                    };
-
-                    if wall_side == 1
-                    {
-                        color /= 2;
+                    // Calculate the hit point on the edge
+                    let mut wall_hit_point: f32;
+                    if wall_side == 0 {
+                        wall_hit_point = player_y + perp_edge_distance * ray_direction_y;
+                    }
+                    else {
+                        wall_hit_point = player_x + perp_edge_distance * ray_direction_x;
                     }
 
-                    /*
-                    for y in (line_screen_start as i32)..(line_screen_end as i32) {
-                        let offset = (y as usize * pitch) + (x * 3);
+                    // Convert to local edge coordinate
+                    wall_hit_point -= f32::floor(wall_hit_point);
 
-                        buffer[offset] = color as u8;
-                        buffer[offset + 1] = 0 as u8;
-                        buffer[offset + 2] = 0 as u8;
+                    // Calculate the texture x coordinate
+                    let mut texture_x: u32 = (wall_hit_point * TEXTURE_WIDTH as f32) as u32;
+                    texture_x = TEXTURE_WIDTH - texture_x - 1;
+                    if ((wall_side == 0) && (ray_direction_x > 0.0)) || ((wall_side == 1) && (ray_direction_y < 0.0)) {
+                        texture_x = TEXTURE_WIDTH - texture_x - 1;
                     }
-                    */
 
                     for y in 0..(WINDOW_HEIGHT as usize) {
+                        // pitch is WIDTH * bytes per pixel
                         let offset = (y * pitch) + (x * 3);
 
-                        if (y >= line_screen_start as usize) && (y <= line_screen_end as usize) {
-                            buffer[offset] = color as u8;
-                            buffer[offset + 1] = 0 as u8;
-                            buffer[offset + 2] = 0 as u8;
+                        if (y >= line_screen_start as usize) && (y < line_screen_end as usize) {
+                            let line_y: u32 = y as u32 - line_screen_start as u32; // this is wrong
+                            let mut texture_y: u32 = ((line_y as f32 / line_height) * (TEXTURE_HEIGHT - 1) as f32) as u32;
+                            //if texture_y >= 63 { texture_y = 63;}
+
+                            let texture_pixel_index = (texture_y as usize * TEXTURE_WIDTH as usize) + texture_x as usize;
+                            //println!("TEXTURE_SIZE = {}, line_y = {}, line_height = {}, texture_y = {}, texture_pixel_index = {}", TEXTURE_SIZE, line_y, line_height, texture_y, texture_pixel_index);
+
+                            let texture_pixel = texture[texture_pixel_index];
+
+                            // Extract 24 bit color components (r, g, b)
+                            let red: u8 = (texture_pixel >> 16) as u8;
+                            let green: u8 = (texture_pixel >> 8) as u8;
+                            let blue: u8 = texture_pixel as u8;
+
+                            buffer[offset] = red;
+                            buffer[offset + 1] = green;
+                            buffer[offset + 2] = blue;
                         }
                         else {
                             buffer[offset] = 0 as u8;
                             buffer[offset + 1] = 0 as u8;
                             buffer[offset + 2] = 0 as u8;
+                        }
+
+                        // Texture test
+                        if x < TEXTURE_WIDTH as usize {
+                            if y < TEXTURE_HEIGHT as usize {
+                                let offset = (y * pitch) + (x * 3);
+                                let texture_pixel_index = (y * TEXTURE_WIDTH as usize) + x;
+                                let texture_pixel = texture[texture_pixel_index];
+
+                                // Extract 24 bit color components (r, g, b)
+                                let red: u8 = (texture_pixel >> 16) as u8;
+                                let green: u8 = (texture_pixel >> 8) as u8;
+                                let blue: u8 = texture_pixel as u8;
+
+                                buffer[offset] = red;
+                                buffer[offset + 1] = green;
+                                buffer[offset + 2] = blue;
+                            }
                         }
                     }
                 }
