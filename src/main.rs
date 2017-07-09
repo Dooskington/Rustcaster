@@ -78,6 +78,26 @@ fn main() {
     let mut render_timer = time::Duration::zero();
     let sixty_hz = time::Duration::nanoseconds(16666667);
 
+    let mut input_left: bool = false;
+    let mut input_right: bool = false;
+    let mut input_up: bool = false;
+    let mut input_down: bool = false;
+    let mut input_q: bool = false;
+    let mut input_e: bool = false;
+
+    // Setup
+    let move_speed: f32 = 5.0;
+    let rotation_speed: f32 = 180.0;
+    let rotation_speed_radians: f32 = rotation_speed * (TWO_PI / 180.0);
+    let mut player_x: f32 = 14.5;
+    let mut player_y: f32 = 22.0;
+    let mut player_direction_x: f32 = 0.0;
+    let mut player_direction_y: f32 = -1.0;
+    let mut player_right_x: f32 = -player_direction_y;
+    let mut player_right_y: f32 = -player_direction_x;
+    let mut camera_plane_x: f32 = 1.0;
+    let mut camera_plane_y: f32 = 0.0;
+
     // Engine loop
     let mut sdl_event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -90,27 +110,148 @@ fn main() {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running;
                 },
+
+                // Game input
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } | Event::KeyDown { keycode: Some(Keycode::A), .. } => {
+                    input_left = true;
+                },
+                Event::KeyUp { keycode: Some(Keycode::Left), .. } | Event::KeyUp { keycode: Some(Keycode::A), .. } => {
+                    input_left = false;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } | Event::KeyDown { keycode: Some(Keycode::D), .. } => {
+                    input_right = true;
+                },
+                Event::KeyUp { keycode: Some(Keycode::Right), .. } | Event::KeyUp { keycode: Some(Keycode::D), .. } => {
+                    input_right = false;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Q), .. } => {
+                    input_q = true;
+                },
+                Event::KeyUp { keycode: Some(Keycode::Q), .. } => {
+                    input_q = false;
+                },
+                Event::KeyDown { keycode: Some(Keycode::E), .. } => {
+                    input_e = true;
+                },
+                Event::KeyUp { keycode: Some(Keycode::E), .. } => {
+                    input_e = false;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } | Event::KeyDown { keycode: Some(Keycode::W), .. } => {
+                    input_up = true;
+                },
+                Event::KeyUp { keycode: Some(Keycode::Up), .. } | Event::KeyUp { keycode: Some(Keycode::W), .. } => {
+                    input_up = false;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } | Event::KeyDown { keycode: Some(Keycode::S), .. } => {
+                    input_down = true;
+                },
+                Event::KeyUp { keycode: Some(Keycode::Down), .. } | Event::KeyUp { keycode: Some(Keycode::S), .. } => {
+                    input_down = false;
+                },
+
                 _ => {}
             }
         }
 
         // Calculate elapsed time
         let current_time = time::now();
-        let delta_time = current_time - last_tick_time;
+        let elapsed_time = current_time - last_tick_time;
+        let delta_time: f32 = elapsed_time.num_milliseconds() as f32 / 1000.0;
         let total_time = current_time - start_time;
-        render_timer = render_timer + delta_time;
-
-        // Setup
-        let player_x: f32 = 14.5;
-        let player_y: f32 = 22.0;
-        let player_direction_x: f32 = 0.0;
-        let player_direction_y: f32 = -1.0;
-        let camera_plane_x: f32 = 1.0;
-        let camera_plane_y: f32 = 0.0;
+        render_timer = render_timer + elapsed_time;
         //let view_distance: f32 = ((RENDER_WIDTH / 2) as f32) / f32::tan(FIELD_OF_VIEW / 2_f32);
 
+        let rotation_speed_correct = rotation_speed_radians * delta_time;
+
         // Tick
-        // TODO
+        if input_up
+        {
+            let new_player_x = player_x + ((player_direction_x * move_speed) * delta_time);
+            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x == 0 {
+                player_x = new_player_x;
+            }
+
+            let new_player_y = player_y + ((player_direction_y * move_speed) * delta_time);
+            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y == 0 {
+                player_y = new_player_y;
+            }
+        }
+        if input_down
+        {
+            let new_player_x = player_x - ((player_direction_x * move_speed) * delta_time);
+            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x == 0 {
+                player_x = new_player_x;
+            }
+
+            let new_player_y = player_y - ((player_direction_y * move_speed) * delta_time);
+            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y == 0 {
+                player_y = new_player_y;
+            }
+        }
+        if input_q
+        {
+            let new_player_x = player_x - ((player_right_x * move_speed) * delta_time);
+            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x == 0 {
+                player_x = new_player_x;
+            }
+
+            let new_player_y = player_y - ((player_right_y * move_speed) * delta_time);
+            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y == 0 {
+                player_y = new_player_y;
+            }
+        }
+        if input_e
+        {
+            let new_player_x = player_x + ((player_right_x * move_speed) * delta_time);
+            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x == 0 {
+                player_x = new_player_x;
+            }
+
+            let new_player_y = player_y + ((player_right_y * move_speed) * delta_time);
+            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y == 0 {
+                player_y = new_player_y;
+            }
+        }
+        if input_left
+        {
+            // Rotating the vectors by multiplying them with the rotation matrix
+            // [ cos(a) -sin(a) ]
+            // [ sin(a)  cos(a) ]
+
+            let old_direction_x = player_direction_x;
+            player_direction_x = (player_direction_x * f32::cos(-rotation_speed_correct)) - (player_direction_y * f32::sin(-rotation_speed_correct));
+            player_direction_y = (old_direction_x * f32::sin(-rotation_speed_correct)) + (player_direction_y * f32::cos(-rotation_speed_correct));
+
+            let old_right_x = player_right_x;
+            player_right_x = (player_right_x * f32::cos(-rotation_speed_correct)) - (player_right_y * f32::sin(-rotation_speed_correct));
+            player_right_y = (old_right_x * f32::sin(-rotation_speed_correct)) + (player_right_y * f32::cos(-rotation_speed_correct));
+
+            let old_plane_x = camera_plane_x;
+            camera_plane_x = (camera_plane_x * f32::cos(-rotation_speed_correct)) - (camera_plane_y * f32::sin(-rotation_speed_correct));
+            camera_plane_y = (old_plane_x * f32::sin(-rotation_speed_correct)) + (camera_plane_y * f32::cos(-rotation_speed_correct));
+        }
+        if input_right
+        {
+            let old_direction_x = player_direction_x;
+            player_direction_x = (player_direction_x * f32::cos(rotation_speed_correct)) - (player_direction_y * f32::sin(rotation_speed_correct));
+            player_direction_y = (old_direction_x * f32::sin(rotation_speed_correct)) + (player_direction_y * f32::cos(rotation_speed_correct));
+
+            let old_right_x = player_right_x;
+            player_right_x = (player_right_x * f32::cos(rotation_speed_correct)) - (player_right_y * f32::sin(rotation_speed_correct));
+            player_right_y = (old_right_x * f32::sin(rotation_speed_correct)) + (player_right_y * f32::cos(rotation_speed_correct));
+
+            let old_plane_x = camera_plane_x;
+            camera_plane_x = (camera_plane_x * f32::cos(rotation_speed_correct)) - (camera_plane_y * f32::sin(rotation_speed_correct));
+            camera_plane_y = (old_plane_x * f32::sin(rotation_speed_correct)) + (camera_plane_y * f32::cos(rotation_speed_correct));
+        }
 
         last_tick_time = current_time;
 
@@ -213,6 +354,7 @@ fn main() {
                         color /= 2;
                     }
 
+                    /*
                     for y in (line_screen_start as i32)..(line_screen_end as i32) {
                         let offset = (y as usize * pitch) + (x * 3);
 
@@ -220,16 +362,22 @@ fn main() {
                         buffer[offset + 1] = 0 as u8;
                         buffer[offset + 2] = 0 as u8;
                     }
+                    */
 
-                    /*
                     for y in 0..(WINDOW_HEIGHT as usize) {
                         let offset = (y * pitch) + (x * 3);
 
-                        buffer[offset] = color as u8;
-                        buffer[offset + 1] = 0 as u8;
-                        buffer[offset + 2] = 0 as u8;
+                        if (y >= line_screen_start as usize) && (y <= line_screen_end as usize) {
+                            buffer[offset] = color as u8;
+                            buffer[offset + 1] = 0 as u8;
+                            buffer[offset + 2] = 0 as u8;
+                        }
+                        else {
+                            buffer[offset] = 0 as u8;
+                            buffer[offset + 1] = 0 as u8;
+                            buffer[offset + 2] = 0 as u8;
+                        }
                     }
-                    */
                 }
             }).unwrap();
 
