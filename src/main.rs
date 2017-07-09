@@ -4,9 +4,9 @@ extern crate time;
 use sdl2::pixels::*;
 
 pub const WINDOW_TITLE: &'static str = "Rustcaster";
-pub const WINDOW_WIDTH: u32 = 640;
+pub const WINDOW_WIDTH: u32 = 480;
 pub const WINDOW_HEIGHT: u32 = 480;
-pub const RENDER_WIDTH: u32 = 640;
+pub const RENDER_WIDTH: u32 = 480;
 pub const RENDER_HEIGHT: u32 = 480;
 
 pub const MAP_WIDTH: u32 = 30;
@@ -20,7 +20,7 @@ pub const TEXTURE_SIZE: usize = (TEXTURE_WIDTH * TEXTURE_HEIGHT) as usize;
 pub const TWO_PI: f32 = (2_f64 * std::f64::consts::PI) as f32;
 pub const FIELD_OF_VIEW: f32 = (90_f64 * (std::f64::consts::PI / 180_f64)) as f32;
 
-pub const MAP: [u32; MAP_SIZE] = 
+pub const MAP: [u32; MAP_SIZE] =
    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
     2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
     2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
@@ -99,17 +99,17 @@ fn main() {
     let mut player_direction_y: f32 = -1.0;
     let mut player_right_x: f32 = -player_direction_y;
     let mut player_right_y: f32 = -player_direction_x;
-    let mut camera_plane_x: f32 = 1.0;
+    let mut camera_plane_x: f32 = 0.66;
     let mut camera_plane_y: f32 = 0.0;
 
     let mut texture: [u32; TEXTURE_SIZE] = [0; TEXTURE_SIZE];
-    for x in 0..TEXTURE_WIDTH { 
+    for x in 0..TEXTURE_WIDTH {
         for y in 0..TEXTURE_HEIGHT {
             let xor_color: u32 = (x * 256 / TEXTURE_WIDTH) ^ (y * 256 / TEXTURE_HEIGHT);
             texture[((y * TEXTURE_WIDTH) + x) as usize] = 256 * xor_color;
         }
     }
-    
+
     // DEBUG: set the start and end of the texture to white and red
     //texture[0] = 16777215;
     //texture[TEXTURE_WIDTH as usize - 1] = 16711680;
@@ -340,16 +340,11 @@ fn main() {
                     else {
                         perp_edge_distance = (ray_map_y as f32 - player_y + (1.0 - step_direction_y as f32) / 2.0) / ray_direction_y;
                     }
-                    
+
                     // Calculate the coordinates and height of the line that we need to render.
-                    let line_height: f32 = RENDER_HEIGHT as f32 / perp_edge_distance;
-
+                    let line_height: f32 = RENDER_HEIGHT as f32 / (perp_edge_distance / 0.66);
                     let mut line_screen_start: f32 = (RENDER_HEIGHT as f32 / 2.0) - (line_height / 2.0);
-                    //if line_screen_start < 0.0 { line_screen_start = 0.0; }
-
                     let mut line_screen_end: f32 = line_screen_start + line_height;
-                    //if line_screen_end >= RENDER_HEIGHT as f32 { line_screen_end = RENDER_HEIGHT as f32 - 1.0; }
-                    //println!("line_screen_start = {}, line_screen_end = {}", line_screen_start, line_screen_end);
 
                     //let tile: u32 = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize];
 
@@ -401,6 +396,7 @@ fn main() {
                         }
 
                         // Texture test
+                        /*
                         if x < TEXTURE_WIDTH as usize {
                             if y < TEXTURE_HEIGHT as usize {
                                 let offset = (y * pitch) + (x * 3);
@@ -417,6 +413,7 @@ fn main() {
                                 buffer[offset + 2] = blue;
                             }
                         }
+                        */
                     }
                 }
             }).unwrap();
