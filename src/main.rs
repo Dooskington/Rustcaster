@@ -20,8 +20,8 @@ pub const TEXTURE_WIDTH: u32 = 64;
 pub const TEXTURE_HEIGHT: u32 = 64;
 pub const TEXTURE_SIZE: usize = (TEXTURE_WIDTH * TEXTURE_HEIGHT) as usize;
 
-pub const TWO_PI: f32 = (2_f64 * std::f64::consts::PI) as f32;
-pub const FIELD_OF_VIEW: f32 = (90_f64 * (std::f64::consts::PI / 180_f64)) as f32;
+pub const TWO_PI: f64 = 2.0 * std::f64::consts::PI;
+pub const FIELD_OF_VIEW: f64 = 90.0 * (std::f64::consts::PI / 180.0);
 
 pub const MAP: [u32; MAP_SIZE] =
    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -46,9 +46,9 @@ pub const MAP: [u32; MAP_SIZE] =
     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,
     1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
@@ -93,19 +93,27 @@ fn main() {
     let mut input_e: bool = false;
 
     // Setup
-    let move_speed: f32 = 5.0;
-    let rotation_speed: f32 = 180.0;
-    let rotation_speed_radians: f32 = rotation_speed * (TWO_PI / 180.0);
-    let mut player_x: f32 = 14.5;
-    let mut player_y: f32 = 22.0;
-    let mut player_direction_x: f32 = 0.0;
-    let mut player_direction_y: f32 = -1.0;
-    let mut player_right_x: f32 = -player_direction_y;
-    let mut player_right_y: f32 = -player_direction_x;
-    let mut camera_plane_x: f32 = 0.66;
-    let mut camera_plane_y: f32 = 0.0;
+    let projection_plane_width: f64 = RENDER_WIDTH as f64;
+    let projection_plane_height: f64 = RENDER_HEIGHT as f64;
+    let projection_plane_distance: f64 = (projection_plane_width / 2.0) / f64::tan(FIELD_OF_VIEW / 2.0);
+    let angle_between_rays: f64 = FIELD_OF_VIEW / projection_plane_width;
+
+    let move_speed: f64 = 5.0;
+    let rotation_speed: f64 = 180.0;
+    let rotation_speed_radians: f64 = rotation_speed * (TWO_PI / 180.0) as f64;
+    let mut player_x: f64 = 14.5;
+    let mut player_y: f64 = 22.0;
+    let mut player_rotation: f64 = 0.0;
+    let mut player_direction_x: f64 = 0.0;
+    let mut player_direction_y: f64 = -1.0;
+    let mut player_right_x: f64 = -player_direction_y;
+    let mut player_right_y: f64 = -player_direction_x;
+    let mut camera_plane_x: f64 = 0.66;
+    let mut camera_plane_y: f64 = 0.0;
+    let wall_proportion: f64 = RENDER_HEIGHT as f64 / camera_plane_x;
 
     let mut texture: [u32; TEXTURE_SIZE] = [0; TEXTURE_SIZE];
+    let mut debug: bool = false;
     /*
     for x in 0..TEXTURE_WIDTH {
         for y in 0..TEXTURE_HEIGHT {
@@ -116,12 +124,28 @@ fn main() {
     */
 
     let path = Path::new("wall.png");
-    //let wall_texture = texture_creator.load_texture(path).unwrap();
     let wall_surface = Surface::from_file(path).unwrap();
+    let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
+    let mut wall_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
 
-    // DEBUG: set the start and end of the texture to white and red
-    //texture[0] = 16777215;
-    //texture[TEXTURE_WIDTH as usize - 1] = 16711680;
+    wall_surface.with_lock(|surface_buffer: &[u8]| {
+        for x in 0..wall_surface.width() {
+            for y in 0..wall_surface.height() {
+                let texture_pixel_index = 
+                    (x as usize * wall_surface.pitch() as usize) + 
+                    (y as usize * wall_surface.pixel_format_enum().byte_size_per_pixel());
+
+                let color = Color {
+                    r: surface_buffer[texture_pixel_index],
+                    g: surface_buffer[texture_pixel_index + 1],
+                    b: surface_buffer[texture_pixel_index + 2],
+                    a: 255
+                };
+
+                wall_buffer[(y as usize * wall_surface.width() as usize) + x as usize] = color;
+            }
+        }
+    });
 
     // Engine loop
     let mut sdl_event_pump = sdl_context.event_pump().unwrap();
@@ -131,7 +155,7 @@ fn main() {
             use sdl2::keyboard::*;
 
             match event {
-                // If the window is closed, or ESC is pressed, exit
+            // If the window is closed, or ESC is pressed, exit
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running;
                 },
@@ -173,6 +197,9 @@ fn main() {
                 Event::KeyUp { keycode: Some(Keycode::Down), .. } | Event::KeyUp { keycode: Some(Keycode::S), .. } => {
                     input_down = false;
                 },
+                Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
+                    debug = true;
+                },
 
                 _ => {}
             }
@@ -181,10 +208,9 @@ fn main() {
         // Calculate elapsed time
         let current_time = time::now();
         let elapsed_time = current_time - last_tick_time;
-        let delta_time: f32 = elapsed_time.num_milliseconds() as f32 / 1000.0;
-        let total_time = current_time - start_time;
+        let delta_time: f64 = elapsed_time.num_milliseconds() as f64 / 1000.0;
+        //let total_time = current_time - start_time;
         render_timer = render_timer + elapsed_time;
-        //let view_distance: f32 = ((RENDER_WIDTH / 2) as f32) / f32::tan(FIELD_OF_VIEW / 2_f32);
 
         let rotation_speed_correct = rotation_speed_radians * delta_time;
 
@@ -194,13 +220,13 @@ fn main() {
         // Tick
         if input_up
         {
-            let new_player_x = player_x + ((player_direction_x * move_speed) * delta_time);
+            let new_player_x = player_x + ((f64::cos(player_rotation) * move_speed) * delta_time);
             let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
             if next_tile_x == 0 {
                 player_x = new_player_x;
             }
 
-            let new_player_y = player_y + ((player_direction_y * move_speed) * delta_time);
+            let new_player_y = player_y + ((f64::sin(player_rotation) * move_speed) * delta_time);
             let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
             if next_tile_y == 0 {
                 player_y = new_player_y;
@@ -208,13 +234,13 @@ fn main() {
         }
         if input_down
         {
-            let new_player_x = player_x - ((player_direction_x * move_speed) * delta_time);
+            let new_player_x = player_x - ((f64::cos(player_rotation) * move_speed) * delta_time);
             let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
             if next_tile_x == 0 {
                 player_x = new_player_x;
             }
 
-            let new_player_y = player_y - ((player_direction_y * move_speed) * delta_time);
+            let new_player_y = player_y - ((f64::sin(player_rotation) * move_speed) * delta_time);
             let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
             if next_tile_y == 0 {
                 player_y = new_player_y;
@@ -222,6 +248,7 @@ fn main() {
         }
         if input_q
         {
+            /*
             let new_player_x = player_x - ((player_right_x * move_speed) * delta_time);
             let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
             if next_tile_x == 0 {
@@ -233,9 +260,11 @@ fn main() {
             if next_tile_y == 0 {
                 player_y = new_player_y;
             }
+            */
         }
         if input_e
         {
+            /*
             let new_player_x = player_x + ((player_right_x * move_speed) * delta_time);
             let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
             if next_tile_x == 0 {
@@ -247,30 +276,21 @@ fn main() {
             if next_tile_y == 0 {
                 player_y = new_player_y;
             }
+            */
         }
-        if input_left
-        {
-            // Rotating the vectors by multiplying them with the rotation matrix
-            // [ cos(a) -sin(a) ]
-            // [ sin(a)  cos(a) ]
-
-            let old_direction_x = player_direction_x;
-            player_direction_x = (player_direction_x * f32::cos(-rotation_speed_correct)) - (player_direction_y * f32::sin(-rotation_speed_correct));
-            player_direction_y = (old_direction_x * f32::sin(-rotation_speed_correct)) + (player_direction_y * f32::cos(-rotation_speed_correct));
-
-            let old_plane_x = camera_plane_x;
-            camera_plane_x = (camera_plane_x * f32::cos(-rotation_speed_correct)) - (camera_plane_y * f32::sin(-rotation_speed_correct));
-            camera_plane_y = (old_plane_x * f32::sin(-rotation_speed_correct)) + (camera_plane_y * f32::cos(-rotation_speed_correct));
+        if input_left {
+            player_rotation -= rotation_speed_correct;
         }
-        if input_right
-        {
-            let old_direction_x = player_direction_x;
-            player_direction_x = (player_direction_x * f32::cos(rotation_speed_correct)) - (player_direction_y * f32::sin(rotation_speed_correct));
-            player_direction_y = (old_direction_x * f32::sin(rotation_speed_correct)) + (player_direction_y * f32::cos(rotation_speed_correct));
+        if input_right {
+            player_rotation += rotation_speed_correct;
+        }
 
-            let old_plane_x = camera_plane_x;
-            camera_plane_x = (camera_plane_x * f32::cos(rotation_speed_correct)) - (camera_plane_y * f32::sin(rotation_speed_correct));
-            camera_plane_y = (old_plane_x * f32::sin(rotation_speed_correct)) + (camera_plane_y * f32::cos(rotation_speed_correct));
+        // Clamp player_rotation
+        if player_rotation < 0.0 {
+            player_rotation += TWO_PI;
+        }
+        else if player_rotation >= TWO_PI {
+            player_rotation -= TWO_PI;
         }
 
         last_tick_time = current_time;
@@ -282,154 +302,166 @@ fn main() {
             canvas.clear();
 
             render_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for x in 0..(WINDOW_WIDTH as usize) {
-                    // Calculate the x coordinate of the ray in screen space
-                    let ray_x: f32 = 2.0 * (x as f32 / RENDER_WIDTH as f32) - 1.0;
+                for x in 0..(RENDER_WIDTH as usize) {
+                    // Where on the screen the ray goes through
+                    let ray_screen_x: f64 = -(RENDER_WIDTH as f64) / 2.0 + x as f64;
 
-                    // Calculate the direction that the ray needs to go
-                    let ray_direction_x: f32 = player_direction_x + (camera_plane_x * ray_x);
-                    let ray_direction_y: f32 = player_direction_y + (camera_plane_y * ray_x);
+                    // The distance from the viewer to the point on the screen
+                    let ray_view_dist = f64::sqrt((ray_screen_x * ray_screen_x) + (projection_plane_distance * projection_plane_distance));
 
-                    let mut ray_map_x: i32 = player_x as i32;
-                    let mut ray_map_y: i32 = player_y as i32;
+                    let mut ray_angle: f64 = f64::asin(ray_screen_x / ray_view_dist);
+                    ray_angle += player_rotation;
 
-                    // Length of ray from current position to next tile edge
-                    let mut edge_distance_x: f32;
-                    let mut edge_distance_y: f32;
-
-                    // Length of ray from one tile edge to the next tile edge
-                    let edge_delta_distance_x: f32 = f32::sqrt(1.0 + (ray_direction_y * ray_direction_y) / (ray_direction_x * ray_direction_x));
-                    let edge_delta_distance_y: f32 = f32::sqrt(1.0 + (ray_direction_x * ray_direction_x) / (ray_direction_y * ray_direction_y));
-                    let perp_edge_distance: f32;
-
-                    // Information about the ray hit
-                    let mut is_wall_hit: bool = false;
-                    let mut wall_side: u8 = 0;
-
-                    // Calculate the step and initial edge distance
-                    let step_direction_x: i8;
-                    let step_direction_y: i8;
-                    if ray_direction_x < 0.0 {
-                        step_direction_x = -1;
-                        edge_distance_x = (player_x - ray_map_x as f32) * edge_delta_distance_x;
+                    // Clamp ray_angle
+                    if ray_angle < 0.0 {
+                        ray_angle += TWO_PI;
                     }
-                    else {
-                        step_direction_x = 1;
-                        edge_distance_x = ((ray_map_x + 1) as f32 - player_x) * edge_delta_distance_x;
-                    }
-                    if ray_direction_y < 0.0 {
-                        step_direction_y = -1;
-                        edge_distance_y = (player_y - ray_map_y as f32) * edge_delta_distance_y;
-                    }
-                    else {
-                        step_direction_y = 1;
-                        edge_distance_y = ((ray_map_y + 1) as f32 - player_y) * edge_delta_distance_y;
+                    else if ray_angle >= TWO_PI {
+                        ray_angle -= TWO_PI;
                     }
 
-                    // Perform DDA
-                    while !is_wall_hit {
-                        if edge_distance_x < edge_distance_y {
-                            edge_distance_x += edge_delta_distance_x;
-                            ray_map_x += step_direction_x as i32;
-                            wall_side = 0;
+                    // Check the quadrant of the ray
+                    let is_ray_right: bool = ray_angle > (TWO_PI * 0.75) || ray_angle < (TWO_PI * 0.25);
+                    let is_ray_up: bool = ray_angle < 0.0 || ray_angle > std::f64::consts::PI;
+
+                    if x == (RENDER_WIDTH / 2) as usize {
+                        //println!("ray_angle = {} is_ray_right = {}, is_ray_up = {}", ray_angle * (180.0 / std::f64::consts::PI), is_ray_right, is_ray_up);
+                    }
+
+                    let mut hit_distance: f64 = 0.0; // Distance to tile we hit
+                    let mut hit_x: f64 = 0.0;
+                    let mut hit_y: f64 = 0.0;
+                    let mut hit_map_x: i32 = 0;
+                    let mut hit_map_y: i32 = 0;
+
+                    let mut map_x: i32 = 0;
+                    let mut map_y: i32 = 0;
+
+                    let mut tile_side: i8 = 0; // Either 0 for vertical, or 1 for horizontal
+
+                    let tile_size: f64 = 1.0;
+
+                    // Check against vertical tile lines
+                    // We do this by moving to the right or left edge of the block we're standing in,
+                    // then moving, in 1 unit steps, horizontally. The amount we have to move vertically
+                    // is determined by the slope of the ray.
+
+                    let mut slope: f64 = f64::sin(ray_angle) / f64::cos(ray_angle);
+                    let mut delta_x: f64 = if is_ray_right { tile_size } else { -tile_size }; // Horizontal step amount
+                    let mut delta_y: f64 = delta_x * slope; // Vertical step amount
+
+                    let mut ray_position_x: f64 = if is_ray_right { f64::ceil(player_x) } else { f64::floor(player_x) }; // Starting horizontal position, at one of the edges of the current map tile
+                    let mut ray_position_y: f64 = player_y + (ray_position_x - player_x) * slope; // Starting vertical position. We add the small horizontal step we just made, multiplied by the slope.
+
+                    // While the ray is still inside the map
+                    while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
+                        let tile_map_x: i32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -tile_size })) as i32;
+                        let tile_map_y: i32 = f64::floor(ray_position_y) as i32;
+
+                        if MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize] > 0 {
+                            let distance_x: f64 = ray_position_x - player_x;
+                            let distance_y: f64 = ray_position_y - player_y;
+                            hit_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
+
+                            tile_side = 0;
+
+                            hit_map_x = tile_map_x;
+                            hit_map_y = tile_map_y;
+
+                            hit_x = ray_position_x;
+                            hit_y = ray_position_y;
+
+                            break;
                         }
-                        else {
-                            edge_distance_y += edge_delta_distance_y;
-                            ray_map_y += step_direction_y as i32;
-                            wall_side = 1;
+
+                        ray_position_x += delta_x;
+                        ray_position_y += delta_y;
+                    }
+
+                    // Check against horizontal tile lines.
+                    // The only difference here is that once we hit a tile, we check if there was also one
+                    // found there in the vertical run. If so, we only register this hit if this distance is smaller.
+
+                    slope = f64::cos(ray_angle) / f64::sin(ray_angle);
+                    delta_y = if is_ray_up { -tile_size } else { tile_size }; // Vertical step amount
+                    delta_x = delta_y * slope; // Horizontal step amount
+
+                    ray_position_y = if is_ray_up { f64::floor(player_y) } else { f64::ceil(player_y) };
+                    ray_position_x = player_x + (ray_position_y - player_y) * slope;
+
+                    // While the ray is still inside the map
+                    while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
+                        let tile_map_x: i32 = f64::floor(ray_position_x) as i32;
+                        let tile_map_y: i32 = f64::floor(ray_position_y + (if is_ray_up { -tile_size } else { 0.0 })) as i32;
+
+                        if MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize] > 0 {
+                            let distance_x: f64 = ray_position_x - player_x;
+                            let distance_y: f64 = ray_position_y - player_y;
+                            let tile_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
+
+                            if hit_distance == 0.0 || tile_distance < hit_distance
+                            {
+                                hit_distance = tile_distance;
+
+                                tile_side = 1;
+
+                                hit_map_x = tile_map_x;
+                                hit_map_y = tile_map_y;
+
+                                hit_x = ray_position_x;
+                                hit_y = ray_position_y;
+                            }
+
+                            break;
                         }
 
-                        is_wall_hit = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize] > 0;
+                        ray_position_x += delta_x;
+                        ray_position_y += delta_y;         
                     }
 
-                    // Calculate distance to ray hit, projected on camera plane (fixes the fish-eye effect)
-                    if wall_side == 0 {
-                        perp_edge_distance = (ray_map_x as f32 - player_x + (1.0 - step_direction_x as f32) / 2.0) / ray_direction_x;
-                    }
-                    else {
-                        perp_edge_distance = (ray_map_y as f32 - player_y + (1.0 - step_direction_y as f32) / 2.0) / ray_direction_y;
-                    }
+                    hit_distance = f64::sqrt(hit_distance);
 
-                    // Calculate the coordinates and height of the line that we need to render.
-                    let line_height: f32 = RENDER_HEIGHT as f32 / (perp_edge_distance / 0.66);
-                    let mut line_screen_start: f32 = (RENDER_HEIGHT as f32 / 2.0) - (line_height / 2.0);
-                    let mut line_screen_end: f32 = line_screen_start + line_height;
+                    // Adjust to remove fish eye
+                    hit_distance *= f64::cos(player_rotation - ray_angle);
 
-                    //let tile: u32 = MAP[((ray_map_y * MAP_WIDTH as i32) + ray_map_x) as usize];
+                    // Calculate the position and height of the wall strip.
+                    // The wall height is 1 unit, the distance from the player to the screen is viewDist,
+                    // thus the height on the screen is equal to
+                    // wallHeight * viewDist / dist
+                    let line_height: i32 = f64::round((tile_size * projection_plane_distance) / hit_distance) as i32;
+                    let line_screen_start: i32 = (RENDER_HEIGHT as i32 / 2) - (line_height / 2);
+                    let line_screen_end: i32 = line_screen_start + line_height;
 
-                    // Calculate the hit point on the edge
-                    let mut wall_hit_point: f32;
-                    if wall_side == 0 {
-                        wall_hit_point = player_y + perp_edge_distance * ray_direction_y;
-                    }
-                    else {
-                        wall_hit_point = player_x + perp_edge_distance * ray_direction_x;
-                    }
+                    let texture_x: u32 = if tile_side == 0 { 
+                        f64::round(((hit_y - (hit_map_y as f64 * tile_size)) % tile_size) * TEXTURE_WIDTH as f64) as u32
+                    } else {
+                        f64::round(((hit_x - (hit_map_x as f64 * tile_size)) % tile_size) * TEXTURE_WIDTH as f64) as u32
+                    };
 
-                    // Convert to local edge coordinate
-                    wall_hit_point -= f32::floor(wall_hit_point);
-
-                    // Calculate the texture x coordinate
-                    let mut texture_x: u32 = (wall_hit_point * (TEXTURE_WIDTH as f32 - 1.0)) as u32;
-                    if ((wall_side == 0) && (ray_direction_x < 0.0)) || ((wall_side == 1) && (ray_direction_y > 0.0)) {
-                        texture_x = TEXTURE_WIDTH - texture_x - 1;
-                    }
-
-                    for y in 0..(WINDOW_HEIGHT as usize) {
+                    for y in 0..(RENDER_HEIGHT as usize) {
                         // pitch is WIDTH * bytes per pixel
                         let offset = (y * pitch) + (x * 3);
 
                         if ((y as i32) >= line_screen_start as i32) && ((y as i32) < line_screen_end as i32) {
                             let line_y: i32 = y as i32 - line_screen_start as i32;
-                            let texture_y: u32 = ((line_y as f32 / line_height) * (TEXTURE_HEIGHT - 1) as f32) as u32;
+                            let texture_y: u32 = f64::floor((line_y as f64 / line_height as f64) * (TEXTURE_HEIGHT - 1) as f64) as u32;
+                            let pixel = wall_buffer[((texture_y * wall_surface.width()) + texture_x) as usize];
 
-                            let mut red: u8 = 0;
-                            let mut green: u8 = 0;
-                            let mut blue: u8 = 0;
-
-                            let bytes_per_pixel = wall_surface.pixel_format_enum().byte_size_per_pixel();
-                            let texture_pixel_index = texture_x as usize * bytes_per_pixel;
-
-                            wall_surface.with_lock(|surface_buffer: &[u8]| {
-                                let surface_pitch = wall_surface.pitch();
-                                let bytes_per_pixel = wall_surface.pixel_format_enum().byte_size_per_pixel();
-                                let texture_pixel_index = (texture_y as usize * surface_pitch as usize) + (texture_x as usize * bytes_per_pixel);
-
-                                // Extract 24 bit color components (r, g, b)
-                                red = surface_buffer[texture_pixel_index];
-                                green = surface_buffer[texture_pixel_index + 1];
-                                blue = surface_buffer[texture_pixel_index + 2];
-                            });
-
-                            buffer[offset] = red;
-                            buffer[offset + 1] = green;
-                            buffer[offset + 2] = blue;
+                            if debug
+                            {
+                                println!("line_height = {}, line_screen_start = {}, line_screen_end = {}, line_y = {}, texture_x = {}, texture_y = {}", line_height, line_screen_start, line_screen_end, line_y, texture_x, texture_y);
+                                debug = false;
+                            }
+                            
+                            buffer[offset] = if tile_side == 1 { pixel.r } else { pixel.r / 2 };
+                            buffer[offset + 1] = if tile_side == 1 { pixel.g } else { pixel.g / 2 };
+                            buffer[offset + 2] = if tile_side == 1 { pixel.b } else { pixel.b / 2 };
                         }
                         else {
                             buffer[offset] = 0 as u8;
                             buffer[offset + 1] = 0 as u8;
                             buffer[offset + 2] = 80 as u8;
                         }
-
-                        // Texture test
-                        /*
-                        if x < TEXTURE_WIDTH as usize {
-                            if y < TEXTURE_HEIGHT as usize {
-                                let offset = (y * pitch) + (x * 3);
-                                let texture_pixel_index = (y * TEXTURE_WIDTH as usize) + x;
-                                let texture_pixel = texture[texture_pixel_index];
-
-                                // Extract 24 bit color components (r, g, b)
-                                let red: u8 = (texture_pixel >> 16) as u8;
-                                let green: u8 = (texture_pixel >> 8) as u8;
-                                let blue: u8 = texture_pixel as u8;
-
-                                buffer[offset] = red;
-                                buffer[offset + 1] = green;
-                                buffer[offset + 2] = blue;
-                            }
-                        }
-                        */
                     }
                 }
             }).unwrap();
