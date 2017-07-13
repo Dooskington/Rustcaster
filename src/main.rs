@@ -154,7 +154,7 @@ fn main() {
         }
     });
 
-    let path = Path::new("floor-tile.png");
+    let path = Path::new("ceiling-tile.png");
     let ceiling_surface = Surface::from_file(path).unwrap();
     let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
     let mut ceiling_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
