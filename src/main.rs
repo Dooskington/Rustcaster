@@ -96,34 +96,17 @@ fn main() {
     let projection_plane_width: f64 = RENDER_WIDTH as f64;
     let projection_plane_height: f64 = RENDER_HEIGHT as f64;
     let projection_plane_distance: f64 = (projection_plane_width / 2.0) / f64::tan(FIELD_OF_VIEW / 2.0);
-    let angle_between_rays: f64 = FIELD_OF_VIEW / projection_plane_width;
 
-    let move_speed: f64 = 5.0;
-    let rotation_speed: f64 = 180.0;
+    let move_speed: f64 = 4.0;
+    let rotation_speed: f64 = 145.0;
     let rotation_speed_radians: f64 = rotation_speed * (TWO_PI / 180.0) as f64;
-    let mut player_x: f64 = 14.5;
-    let mut player_y: f64 = 22.0;
+    let mut player_x: f64 = 1.5;
+    let mut player_y: f64 = 1.5;
     let mut player_rotation: f64 = 0.0;
-    let mut player_direction_x: f64 = 0.0;
-    let mut player_direction_y: f64 = -1.0;
-    let mut player_right_x: f64 = -player_direction_y;
-    let mut player_right_y: f64 = -player_direction_x;
-    let mut camera_plane_x: f64 = 0.66;
-    let mut camera_plane_y: f64 = 0.0;
-    let wall_proportion: f64 = RENDER_HEIGHT as f64 / camera_plane_x;
-
-    let mut texture: [u32; TEXTURE_SIZE] = [0; TEXTURE_SIZE];
+    
     let mut debug: bool = false;
-    /*
-    for x in 0..TEXTURE_WIDTH {
-        for y in 0..TEXTURE_HEIGHT {
-            let xor_color: u32 = (x * 256 / TEXTURE_WIDTH) ^ (y * 256 / TEXTURE_HEIGHT);
-            texture[((y * TEXTURE_WIDTH) + x) as usize] = 256 * xor_color;
-        }
-    }
-    */
 
-    let path = Path::new("wall.png");
+    let path = Path::new("wall-stone.png");
     let wall_surface = Surface::from_file(path).unwrap();
     let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
     let mut wall_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
@@ -132,8 +115,8 @@ fn main() {
         for x in 0..wall_surface.width() {
             for y in 0..wall_surface.height() {
                 let texture_pixel_index = 
-                    (x as usize * wall_surface.pitch() as usize) + 
-                    (y as usize * wall_surface.pixel_format_enum().byte_size_per_pixel());
+                    (y as usize * wall_surface.pitch() as usize) + 
+                    (x as usize * wall_surface.pixel_format_enum().byte_size_per_pixel());
 
                 let color = Color {
                     r: surface_buffer[texture_pixel_index],
@@ -147,6 +130,54 @@ fn main() {
         }
     });
 
+    let path = Path::new("floor-tile.png");
+    let floor_surface = Surface::from_file(path).unwrap();
+    let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
+    let mut floor_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
+
+    floor_surface.with_lock(|surface_buffer: &[u8]| {
+        for x in 0..floor_surface.width() {
+            for y in 0..floor_surface.height() {
+                let texture_pixel_index = 
+                    (y as usize * floor_surface.pitch() as usize) + 
+                    (x as usize * floor_surface.pixel_format_enum().byte_size_per_pixel());
+
+                let color = Color {
+                    r: surface_buffer[texture_pixel_index],
+                    g: surface_buffer[texture_pixel_index + 1],
+                    b: surface_buffer[texture_pixel_index + 2],
+                    a: 255
+                };
+
+                floor_buffer[(y as usize * floor_surface.width() as usize) + x as usize] = color;
+            }
+        }
+    });
+
+    let path = Path::new("floor-tile.png");
+    let ceiling_surface = Surface::from_file(path).unwrap();
+    let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
+    let mut ceiling_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
+
+    ceiling_surface.with_lock(|surface_buffer: &[u8]| {
+        for x in 0..ceiling_surface.width() {
+            for y in 0..ceiling_surface.height() {
+                let texture_pixel_index = 
+                    (y as usize * ceiling_surface.pitch() as usize) + 
+                    (x as usize * ceiling_surface.pixel_format_enum().byte_size_per_pixel());
+
+                let color = Color {
+                    r: surface_buffer[texture_pixel_index],
+                    g: surface_buffer[texture_pixel_index + 1],
+                    b: surface_buffer[texture_pixel_index + 2],
+                    a: 255
+                };
+
+                ceiling_buffer[(y as usize * ceiling_surface.width() as usize) + x as usize] = color;
+            }
+        }
+    });
+
     // Engine loop
     let mut sdl_event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -155,7 +186,7 @@ fn main() {
             use sdl2::keyboard::*;
 
             match event {
-            // If the window is closed, or ESC is pressed, exit
+                // If the window is closed, or ESC is pressed, exit
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running;
                 },
@@ -208,14 +239,11 @@ fn main() {
         // Calculate elapsed time
         let current_time = time::now();
         let elapsed_time = current_time - last_tick_time;
-        let delta_time: f64 = elapsed_time.num_milliseconds() as f64 / 1000.0;
-        //let total_time = current_time - start_time;
+        let delta_time: f64 = (elapsed_time.num_nanoseconds().unwrap() as f64) / 1_000_000_000_f64;
+        let total_time = current_time - start_time;
         render_timer = render_timer + elapsed_time;
 
         let rotation_speed_correct = rotation_speed_radians * delta_time;
-
-        player_right_x = -player_direction_y;
-        player_right_y = player_direction_x;
 
         // Tick
         if input_up
@@ -248,35 +276,31 @@ fn main() {
         }
         if input_q
         {
-            /*
-            let new_player_x = player_x - ((player_right_x * move_speed) * delta_time);
+            let new_player_x = player_x - ((f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
             let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
             if next_tile_x == 0 {
                 player_x = new_player_x;
             }
 
-            let new_player_y = player_y - ((player_right_y * move_speed) * delta_time);
+            let new_player_y = player_y - ((f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
             let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
             if next_tile_y == 0 {
                 player_y = new_player_y;
             }
-            */
         }
         if input_e
         {
-            /*
-            let new_player_x = player_x + ((player_right_x * move_speed) * delta_time);
+            let new_player_x = player_x + ((f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
             let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
             if next_tile_x == 0 {
                 player_x = new_player_x;
             }
 
-            let new_player_y = player_y + ((player_right_y * move_speed) * delta_time);
+            let new_player_y = player_y + ((f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
             let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
             if next_tile_y == 0 {
                 player_y = new_player_y;
             }
-            */
         }
         if input_left {
             player_rotation -= rotation_speed_correct;
@@ -324,18 +348,11 @@ fn main() {
                     let is_ray_right: bool = ray_angle > (TWO_PI * 0.75) || ray_angle < (TWO_PI * 0.25);
                     let is_ray_up: bool = ray_angle < 0.0 || ray_angle > std::f64::consts::PI;
 
-                    if x == (RENDER_WIDTH / 2) as usize {
-                        //println!("ray_angle = {} is_ray_right = {}, is_ray_up = {}", ray_angle * (180.0 / std::f64::consts::PI), is_ray_right, is_ray_up);
-                    }
-
                     let mut hit_distance: f64 = 0.0; // Distance to tile we hit
                     let mut hit_x: f64 = 0.0;
                     let mut hit_y: f64 = 0.0;
                     let mut hit_map_x: i32 = 0;
                     let mut hit_map_y: i32 = 0;
-
-                    let mut map_x: i32 = 0;
-                    let mut map_y: i32 = 0;
 
                     let mut tile_side: i8 = 0; // Either 0 for vertical, or 1 for horizontal
 
@@ -433,34 +450,81 @@ fn main() {
                     let line_screen_end: i32 = line_screen_start + line_height;
 
                     let texture_x: u32 = if tile_side == 0 { 
-                        f64::round(((hit_y - (hit_map_y as f64 * tile_size)) % tile_size) * TEXTURE_WIDTH as f64) as u32
+                        f64::round(((hit_y - (hit_map_y as f64 * tile_size)) % tile_size) * (TEXTURE_WIDTH - 1) as f64) as u32
                     } else {
-                        f64::round(((hit_x - (hit_map_x as f64 * tile_size)) % tile_size) * TEXTURE_WIDTH as f64) as u32
+                        f64::round(((hit_x - (hit_map_x as f64 * tile_size)) % tile_size) * (TEXTURE_WIDTH - 1) as f64) as u32
                     };
 
                     for y in 0..(RENDER_HEIGHT as usize) {
                         // pitch is WIDTH * bytes per pixel
                         let offset = (y * pitch) + (x * 3);
 
-                        if ((y as i32) >= line_screen_start as i32) && ((y as i32) < line_screen_end as i32) {
-                            let line_y: i32 = y as i32 - line_screen_start as i32;
+                        if (y as i32) < line_screen_start {
+                            // Ceiling casting
+
+                            let player_height: f64 = 0.5;
+                            let ceiling_row: i32 = (y as i32) - (RENDER_HEIGHT as i32 / 2);
+
+                            let ceiling_straight_distance = (player_height / ceiling_row as f64) * projection_plane_distance;
+                            let angle_beta_radians = player_rotation - ray_angle;
+
+                            let floor_actual_distance = ceiling_straight_distance / f64::cos(angle_beta_radians);
+
+                            let mut ceiling_hit_x: f64 = player_x - (floor_actual_distance * f64::cos(ray_angle));
+                            let mut ceiling_hit_y: f64 = player_y - (floor_actual_distance * f64::sin(ray_angle));
+
+                            ceiling_hit_x -= ceiling_hit_x.floor();
+                            ceiling_hit_y -= ceiling_hit_y.floor();
+
+                            let ceiling_texture_x: u32 = f64::floor(ceiling_hit_x * (TEXTURE_WIDTH - 1) as f64) as u32;
+                            let ceiling_texture_y: u32 = f64::floor(ceiling_hit_y * (TEXTURE_HEIGHT - 1) as f64) as u32;
+                            
+                            let ceiling_texture_pixel = ceiling_buffer[((ceiling_texture_y * wall_surface.width()) + ceiling_texture_x) as usize];
+
+                            buffer[offset] = ceiling_texture_pixel.r;
+                            buffer[offset + 1] = ceiling_texture_pixel.g;
+                            buffer[offset + 2] = ceiling_texture_pixel.b;
+
+                        }
+                        else if ((y as i32) >= line_screen_start) && ((y as i32) < line_screen_end) {
+                            // Wall casting
+                            let line_y: i32 = y as i32 - line_screen_start;
                             let texture_y: u32 = f64::floor((line_y as f64 / line_height as f64) * (TEXTURE_HEIGHT - 1) as f64) as u32;
                             let pixel = wall_buffer[((texture_y * wall_surface.width()) + texture_x) as usize];
 
-                            if debug
-                            {
-                                println!("line_height = {}, line_screen_start = {}, line_screen_end = {}, line_y = {}, texture_x = {}, texture_y = {}", line_height, line_screen_start, line_screen_end, line_y, texture_x, texture_y);
-                                debug = false;
-                            }
-                            
                             buffer[offset] = if tile_side == 1 { pixel.r } else { pixel.r / 2 };
                             buffer[offset + 1] = if tile_side == 1 { pixel.g } else { pixel.g / 2 };
                             buffer[offset + 2] = if tile_side == 1 { pixel.b } else { pixel.b / 2 };
                         }
+                        else if (y as i32) >= line_screen_end {
+                            // Floor casting                          
+                           
+                            let player_height: f64 = 0.5;
+                            let floor_row: i32 = (y as i32) - (RENDER_HEIGHT as i32 / 2);
+
+                            let floor_straight_distance = (player_height / floor_row as f64) * projection_plane_distance;
+                            let angle_beta_radians = player_rotation - ray_angle;
+
+                            let floor_actual_distance = floor_straight_distance / f64::cos(angle_beta_radians);
+
+                            let mut floor_hit_x: f64 = player_x + (floor_actual_distance * f64::cos(ray_angle));
+                            let mut floor_hit_y: f64 = player_y + (floor_actual_distance * f64::sin(ray_angle));
+
+                            floor_hit_x -= floor_hit_x.floor();
+                            floor_hit_y -= floor_hit_y.floor();
+
+                            let floor_texture_x: u32 = f64::floor(floor_hit_x * (TEXTURE_WIDTH - 1) as f64) as u32;
+                            let floor_texture_y: u32 = f64::floor(floor_hit_y * (TEXTURE_HEIGHT - 1) as f64) as u32;
+                            let floor_texture_pixel = floor_buffer[((floor_texture_y * wall_surface.width()) + floor_texture_x) as usize];
+
+                            buffer[offset] = floor_texture_pixel.r;
+                            buffer[offset + 1] = floor_texture_pixel.g;
+                            buffer[offset + 2] = floor_texture_pixel.b;
+                        }
                         else {
                             buffer[offset] = 0 as u8;
                             buffer[offset + 1] = 0 as u8;
-                            buffer[offset + 2] = 80 as u8;
+                            buffer[offset + 2] = 50 as u8;
                         }
                     }
                 }
