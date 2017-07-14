@@ -23,12 +23,14 @@ pub const TEXTURE_SIZE: usize = (TEXTURE_WIDTH * TEXTURE_HEIGHT) as usize;
 pub const TWO_PI: f64 = 2.0 * std::f64::consts::PI;
 pub const FIELD_OF_VIEW: f64 = 90.0 * (std::f64::consts::PI / 180.0);
 
+pub const COLOR_MAGENTA: Color = Color { r: 255, g: 0, b: 255, a: 255 };
+
 pub const MAP: [u32; MAP_SIZE] =
    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
@@ -74,11 +76,11 @@ fn main() {
         .build()
         .unwrap();
 
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
 
     // Create the render texture for the canvas
     let texture_creator = canvas.texture_creator();
-    let mut render_texture = texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
+    let mut render_texture = texture_creator.create_texture_streaming(PixelFormatEnum::RGBA8888, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
 
     let start_time = time::now();
     let mut last_tick_time = start_time;
@@ -100,83 +102,21 @@ fn main() {
     let move_speed: f64 = 4.0;
     let rotation_speed: f64 = 145.0;
     let rotation_speed_radians: f64 = rotation_speed * (TWO_PI / 180.0) as f64;
-    let mut player_x: f64 = 1.5;
-    let mut player_y: f64 = 1.5;
+    let mut player_x: f64 = 5.5;
+    let mut player_y: f64 = 5.5;
     let mut player_rotation: f64 = 0.0;
+
+    let sprite_x: f64 = 2.5;
+    let sprite_y: f64 = 2.5;
     
     let mut debug: bool = false;
 
-    let path = Path::new("wall-stone.png");
-    let wall_surface = Surface::from_file(path).unwrap();
-    let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
-    let mut wall_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
+    let sprite_texture: [Color; TEXTURE_SIZE] = load_texture("shane-transparent.png");
+    let wall_texture: [Color; TEXTURE_SIZE] = load_texture("wall-stone.png");
+    let floor_texture: [Color; TEXTURE_SIZE] = load_texture("floor-tile.png");
+    let ceiling_texture: [Color; TEXTURE_SIZE] = load_texture("ceiling-tile.png");
 
-    wall_surface.with_lock(|surface_buffer: &[u8]| {
-        for x in 0..wall_surface.width() {
-            for y in 0..wall_surface.height() {
-                let texture_pixel_index = 
-                    (y as usize * wall_surface.pitch() as usize) + 
-                    (x as usize * wall_surface.pixel_format_enum().byte_size_per_pixel());
-
-                let color = Color {
-                    r: surface_buffer[texture_pixel_index],
-                    g: surface_buffer[texture_pixel_index + 1],
-                    b: surface_buffer[texture_pixel_index + 2],
-                    a: 255
-                };
-
-                wall_buffer[(y as usize * wall_surface.width() as usize) + x as usize] = color;
-            }
-        }
-    });
-
-    let path = Path::new("floor-tile.png");
-    let floor_surface = Surface::from_file(path).unwrap();
-    let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
-    let mut floor_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
-
-    floor_surface.with_lock(|surface_buffer: &[u8]| {
-        for x in 0..floor_surface.width() {
-            for y in 0..floor_surface.height() {
-                let texture_pixel_index = 
-                    (y as usize * floor_surface.pitch() as usize) + 
-                    (x as usize * floor_surface.pixel_format_enum().byte_size_per_pixel());
-
-                let color = Color {
-                    r: surface_buffer[texture_pixel_index],
-                    g: surface_buffer[texture_pixel_index + 1],
-                    b: surface_buffer[texture_pixel_index + 2],
-                    a: 255
-                };
-
-                floor_buffer[(y as usize * floor_surface.width() as usize) + x as usize] = color;
-            }
-        }
-    });
-
-    let path = Path::new("ceiling-tile.png");
-    let ceiling_surface = Surface::from_file(path).unwrap();
-    let color_magenta = Color { r: 255, g: 0, b: 255, a: 255 };
-    let mut ceiling_buffer: [Color; TEXTURE_SIZE] = [color_magenta; TEXTURE_SIZE];
-
-    ceiling_surface.with_lock(|surface_buffer: &[u8]| {
-        for x in 0..ceiling_surface.width() {
-            for y in 0..ceiling_surface.height() {
-                let texture_pixel_index = 
-                    (y as usize * ceiling_surface.pitch() as usize) + 
-                    (x as usize * ceiling_surface.pixel_format_enum().byte_size_per_pixel());
-
-                let color = Color {
-                    r: surface_buffer[texture_pixel_index],
-                    g: surface_buffer[texture_pixel_index + 1],
-                    b: surface_buffer[texture_pixel_index + 2],
-                    a: 255
-                };
-
-                ceiling_buffer[(y as usize * ceiling_surface.width() as usize) + x as usize] = color;
-            }
-        }
-    });
+    let mut depth_buffer: [f64; RENDER_WIDTH as usize] = [-1.0; RENDER_WIDTH as usize];
 
     // Engine loop
     let mut sdl_event_pump = sdl_context.event_pump().unwrap();
@@ -319,6 +259,44 @@ fn main() {
 
         last_tick_time = current_time;
 
+        // Sprite testing
+        let delta_x: f64 = sprite_x - player_x;
+        let delta_y: f64 = sprite_y - player_y;
+        let mut sprite_distance: f64 = f64::sqrt((delta_x * delta_x) + (delta_y * delta_y));
+
+        // The angle between the player and the sprite
+        let mut theta: f64 = f64::atan2(delta_y, delta_x);
+
+        // Clamp theta
+        if theta < 0.0 {
+            theta += TWO_PI;
+        }
+        else if theta >= TWO_PI {
+            theta -= TWO_PI;
+        }
+
+        // The relative angle to the sprite. Between -45 to 45 (FOV is 90) when on screen.
+        let mut gamma: f64 = theta - player_rotation;
+        
+        // Clamp gamma
+        if gamma < 0.0 {
+            gamma += TWO_PI;
+        }
+        else if gamma >= TWO_PI {
+            gamma -= TWO_PI;
+        }
+
+        sprite_distance *= f64::cos(player_rotation - theta);
+
+        // The number of pixels to offset from the center of the screen
+        let sprite_pixel_offset: f64 = f64::tan(gamma) * projection_plane_distance;
+        let sprite_screen_x: i32 = f64::round((RENDER_WIDTH as f64 / 2.0) + sprite_pixel_offset) as i32;
+
+        //println!("{}", (FIELD_OF_VIEW / 2.0).to_degrees());
+        //let sprite_screen_x = ceiling_straight_distance / f64::cos(angle_beta_radians);
+        //println!("sprite_distance = {:.2}, gamma = {:.2}, sprite_screen_x = {:.2}", sprite_distance, gamma.to_degrees(), sprite_screen_x);
+        //player_rotation = theta;
+
         // Render
         if render_timer >= sixty_hz {
             render_timer = render_timer - sixty_hz;
@@ -441,6 +419,9 @@ fn main() {
                     // Adjust to remove fish eye
                     hit_distance *= f64::cos(player_rotation - ray_angle);
 
+                    // Store the distance in the depth buffer
+                    depth_buffer[x] = hit_distance;
+
                     // Calculate the position and height of the wall strip.
                     // The wall height is 1 unit, the distance from the player to the screen is viewDist,
                     // thus the height on the screen is equal to
@@ -457,7 +438,7 @@ fn main() {
 
                     for y in 0..(RENDER_HEIGHT as usize) {
                         // pitch is WIDTH * bytes per pixel
-                        let offset = (y * pitch) + (x * 3);
+                        let offset = (y * pitch) + (x * 4);
 
                         if (y as i32) < line_screen_start {
                             // Ceiling casting
@@ -479,22 +460,24 @@ fn main() {
                             let ceiling_texture_x: u32 = f64::floor(ceiling_hit_x * (TEXTURE_WIDTH - 1) as f64) as u32;
                             let ceiling_texture_y: u32 = f64::floor(ceiling_hit_y * (TEXTURE_HEIGHT - 1) as f64) as u32;
                             
-                            let ceiling_texture_pixel = ceiling_buffer[((ceiling_texture_y * wall_surface.width()) + ceiling_texture_x) as usize];
+                            let pixel = ceiling_texture[((ceiling_texture_y * TEXTURE_WIDTH) + ceiling_texture_x) as usize];
 
-                            buffer[offset] = ceiling_texture_pixel.r;
-                            buffer[offset + 1] = ceiling_texture_pixel.g;
-                            buffer[offset + 2] = ceiling_texture_pixel.b;
-
+                            buffer[offset] = pixel.a;
+                            buffer[offset + 1] = pixel.b;
+                            buffer[offset + 2] = pixel.g;
+                            buffer[offset + 3] = pixel.r;
                         }
                         else if ((y as i32) >= line_screen_start) && ((y as i32) < line_screen_end) {
                             // Wall casting
+                            
                             let line_y: i32 = y as i32 - line_screen_start;
                             let texture_y: u32 = f64::floor((line_y as f64 / line_height as f64) * (TEXTURE_HEIGHT - 1) as f64) as u32;
-                            let pixel = wall_buffer[((texture_y * wall_surface.width()) + texture_x) as usize];
+                            let pixel = wall_texture[((texture_y * TEXTURE_WIDTH) + texture_x) as usize];
 
-                            buffer[offset] = if tile_side == 1 { pixel.r } else { pixel.r / 2 };
-                            buffer[offset + 1] = if tile_side == 1 { pixel.g } else { pixel.g / 2 };
-                            buffer[offset + 2] = if tile_side == 1 { pixel.b } else { pixel.b / 2 };
+                            buffer[offset] = pixel.a;
+                            buffer[offset + 1] = if tile_side == 1 { pixel.b } else { pixel.g / 2 };
+                            buffer[offset + 2] = if tile_side == 1 { pixel.g } else { pixel.b / 2 };
+                            buffer[offset + 3] = if tile_side == 1 { pixel.r } else { pixel.r / 2 };
                         }
                         else if (y as i32) >= line_screen_end {
                             // Floor casting                          
@@ -515,17 +498,89 @@ fn main() {
 
                             let floor_texture_x: u32 = f64::floor(floor_hit_x * (TEXTURE_WIDTH - 1) as f64) as u32;
                             let floor_texture_y: u32 = f64::floor(floor_hit_y * (TEXTURE_HEIGHT - 1) as f64) as u32;
-                            let floor_texture_pixel = floor_buffer[((floor_texture_y * wall_surface.width()) + floor_texture_x) as usize];
+                            let pixel = floor_texture[((floor_texture_y * TEXTURE_WIDTH) + floor_texture_x) as usize];
 
-                            buffer[offset] = floor_texture_pixel.r;
-                            buffer[offset + 1] = floor_texture_pixel.g;
-                            buffer[offset + 2] = floor_texture_pixel.b;
+                            buffer[offset] = pixel.a;
+                            buffer[offset + 1] = pixel.b;
+                            buffer[offset + 2] = pixel.g;
+                            buffer[offset + 3] = pixel.r;
                         }
                         else {
-                            buffer[offset] = 0 as u8;
-                            buffer[offset + 1] = 0 as u8;
-                            buffer[offset + 2] = 50 as u8;
+                            let pixel = COLOR_MAGENTA;
+                            buffer[offset] = pixel.a;
+                            buffer[offset + 1] = pixel.b;
+                            buffer[offset + 2] = pixel.g;
+                            buffer[offset + 3] = pixel.r;
                         }
+                    }
+                }
+
+                // Sprite rendering
+                let sprite_height: i32 = (f64::round(projection_plane_distance / sprite_distance) as i32).abs();
+                let sprite_width: i32 = (f64::round(projection_plane_distance / sprite_distance) as i32).abs();
+                
+                let sprite_screen_start_x: i32 = sprite_screen_x - (sprite_width / 2);
+                let sprite_screen_end_x: i32 = sprite_screen_x + (sprite_width / 2);
+                let sprite_screen_start_y: i32 = (RENDER_HEIGHT as i32 / 2) - (sprite_height / 2);
+                let sprite_screen_end_y: i32 = (RENDER_HEIGHT as i32 / 2) + (sprite_height / 2);
+
+                let mut camera_min_angle: f64 = -(FIELD_OF_VIEW / 2.0);
+                // Clamp camera_min_angle
+                if camera_min_angle < 0.0 {
+                    camera_min_angle += TWO_PI;
+                }
+                else if camera_min_angle >= TWO_PI {
+                    camera_min_angle -= TWO_PI;
+                }
+
+                let mut camera_max_angle: f64 = -camera_min_angle;
+
+                // The distance from the viewer to the point on the screen
+                let sprite_start_view_dist = f64::sqrt((sprite_screen_start_x * sprite_screen_start_x) as f64 + (projection_plane_distance * projection_plane_distance));
+                let sprite_start_angle: f64 = f64::asin(sprite_screen_start_x as f64 / sprite_start_view_dist);
+                camera_max_angle += sprite_start_angle;
+
+                // Clamp camera_min_angle
+                if camera_max_angle < 0.0 {
+                    camera_max_angle += TWO_PI;
+                }
+                else if camera_max_angle >= TWO_PI {
+                    camera_max_angle -= TWO_PI;
+                }
+
+                for sprite_screen_row in sprite_screen_start_x..sprite_screen_end_x {
+                    if (sprite_screen_row < 0) || (sprite_screen_row >= WINDOW_WIDTH as i32) {
+                        continue;
+                    }
+
+                    // If the sprite is not visible, don't render it.
+                    if ((gamma < camera_min_angle) && (gamma > camera_max_angle)) || (depth_buffer[sprite_screen_row as usize] < sprite_distance) {
+                        continue;
+                    }
+
+                    for sprite_screen_col in sprite_screen_start_y..sprite_screen_end_y {
+                        if (sprite_screen_col < 0) || (sprite_screen_col >= WINDOW_HEIGHT as i32) {
+                            continue;
+                        }
+                        
+                        let sprite_row = sprite_screen_row - sprite_screen_start_x;
+                        let sprite_col = sprite_screen_col - sprite_screen_start_y;
+
+                        let texture_x: u32 = f64::round((sprite_row as f64 / sprite_width as f64) * (TEXTURE_WIDTH - 1) as f64) as u32;
+                        let texture_y: u32 = f64::round((sprite_col as f64 / sprite_height as f64) * (TEXTURE_HEIGHT - 1) as f64) as u32;
+
+                        let offset = ((sprite_screen_col * pitch as i32) + (sprite_screen_row * 4)) as usize;
+                        let pixel = sprite_texture[((texture_y * TEXTURE_WIDTH) + texture_x) as usize];
+
+                        // if pixel is transparent, don't draw it
+                        if pixel.a == 0 {
+                            continue;
+                        }
+
+                        buffer[offset] = pixel.a;
+                        buffer[offset + 1] = pixel.b;
+                        buffer[offset + 2] = pixel.g;
+                        buffer[offset + 3] = pixel.r;
                     }
                 }
             }).unwrap();
@@ -534,4 +589,33 @@ fn main() {
             canvas.present();
         }
     }
+}
+
+fn load_texture(file_name: &str) -> [Color; TEXTURE_SIZE] {
+    let path = Path::new(file_name);
+    let surface = Surface::from_file(path).unwrap();
+    let mut buffer: [Color; TEXTURE_SIZE] = [COLOR_MAGENTA; TEXTURE_SIZE];
+    
+    println!("{}", surface.pixel_format_enum().byte_size_per_pixel());
+
+    surface.with_lock(|surface_buffer: &[u8]| {
+        for x in 0..surface.width() {
+            for y in 0..surface.height() {
+                let texture_pixel_index = 
+                    (y as usize * surface.pitch() as usize) + 
+                    (x as usize * surface.pixel_format_enum().byte_size_per_pixel());
+
+                let color = Color {
+                    r: surface_buffer[texture_pixel_index],
+                    g: surface_buffer[texture_pixel_index + 1],
+                    b: surface_buffer[texture_pixel_index + 2],
+                    a: surface_buffer[texture_pixel_index + 3]
+                };
+
+                buffer[(y as usize * surface.width() as usize) + x as usize] = color;
+            }
+        }
+    });
+
+    buffer
 }
