@@ -23,22 +23,23 @@ pub const TEXTURE_SIZE: usize = (TEXTURE_WIDTH * TEXTURE_HEIGHT) as usize;
 pub const TWO_PI: f64 = 2.0 * std::f64::consts::PI;
 pub const FIELD_OF_VIEW: f64 = 90.0 * (std::f64::consts::PI / 180.0);
 
+pub const COLOR_BLACK: Color = Color { r: 255, g: 255, b: 255, a: 255 };
 pub const COLOR_MAGENTA: Color = Color { r: 255, g: 0, b: 255, a: 255 };
 
 pub const MAP: [u32; MAP_SIZE] =
    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0,0,0,0,1,
+    1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,
+    1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,1,
+    1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
+    1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
+    1,1,0,0,0,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,
@@ -56,6 +57,75 @@ pub const MAP: [u32; MAP_SIZE] =
     1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+
+struct Entity {
+    pub x: f64,
+    pub y: f64,
+    pub texture_id: u32
+}
+
+impl Entity {
+    pub fn new(x: f64, y: f64, texture_id: u32) -> Entity {
+        Entity {
+            x: x,
+            y: y,
+            texture_id: texture_id
+        }
+    }
+}
+
+struct Texture {
+    pub texture_id: u32,
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Vec<Color>,
+    pub pitch: u32
+}
+
+impl Texture {
+    pub fn load(texture_id: u32, file_name: &str) -> Texture {
+        let path = Path::new(file_name);
+        let surface = Surface::from_file(path).unwrap();
+        let mut pixels: Vec<Color> = Vec::with_capacity((surface.width() * surface.height()) as usize);
+        for i in 0..(surface.width() * surface.height()) as usize {
+            pixels.push(COLOR_MAGENTA);
+        }
+
+        let bytes_per_pixel = surface.pixel_format_enum().byte_size_per_pixel();
+        println!("Loading texture {} with {} bytes per pixel...", file_name, bytes_per_pixel);
+
+        surface.with_lock(|surface_buffer: &[u8]| {
+            for x in 0..surface.width() {
+                for y in 0..surface.height() {
+                    let texture_pixel_index =
+                        (y as usize * surface.pitch() as usize) +
+                        (x as usize * surface.pixel_format_enum().byte_size_per_pixel());
+
+                    let color = Color {
+                        r: surface_buffer[texture_pixel_index],
+                        g: surface_buffer[texture_pixel_index + 1],
+                        b: surface_buffer[texture_pixel_index + 2],
+                        a: surface_buffer[texture_pixel_index + 3]
+                    };
+
+                    pixels[((y * surface.width()) + x) as usize] = color;
+                }
+            }
+        });
+
+        Texture {
+            texture_id: texture_id,
+            width: surface.width(),
+            height: surface.height(),
+            pixels: pixels,
+            pitch: surface.pitch()
+        }
+    }
+
+    pub fn get_pixel(&self, x: u32, y: u32) -> Color {
+        self.pixels[((y * self.width) + x) as usize]
+    }
+}
 
 fn main() {
     // Initialize SDL2
@@ -76,7 +146,7 @@ fn main() {
         .build()
         .unwrap();
 
-    canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+    canvas.set_draw_color(COLOR_BLACK);
 
     // Create the render texture for the canvas
     let texture_creator = canvas.texture_creator();
@@ -102,19 +172,30 @@ fn main() {
     let move_speed: f64 = 4.0;
     let rotation_speed: f64 = 145.0;
     let rotation_speed_radians: f64 = rotation_speed * (TWO_PI / 180.0) as f64;
-    let mut player_x: f64 = 5.5;
-    let mut player_y: f64 = 5.5;
+    let mut player_x: f64 = 3.5;
+    let mut player_y: f64 = 10.5;
     let mut player_rotation: f64 = 0.0;
 
-    let sprite_x: f64 = 2.5;
-    let sprite_y: f64 = 2.5;
-    
     let mut debug: bool = false;
 
-    let sprite_texture: [Color; TEXTURE_SIZE] = load_texture("shane-transparent.png");
-    let wall_texture: [Color; TEXTURE_SIZE] = load_texture("wall-stone.png");
-    let floor_texture: [Color; TEXTURE_SIZE] = load_texture("floor-tile.png");
-    let ceiling_texture: [Color; TEXTURE_SIZE] = load_texture("ceiling-tile.png");
+    let mut textures: Vec<Texture> = Vec::new();
+    textures.push(Texture::load(0, "barrel-0.png"));
+    textures.push(Texture::load(1, "statue-0.png"));
+    textures.push(Texture::load(2, "shane-transparent.png"));
+    textures.push(Texture::load(3, "gravestone.png"));
+    textures.push(Texture::load(4, "wall-stone.png"));
+    textures.push(Texture::load(5, "floor-tile.png"));
+    textures.push(Texture::load(6, "ceiling-tile.png"));
+    //textures.push(Texture::load(7, "test.png"));
+
+    let mut entities: Vec<Entity> = Vec::new();
+    entities.push(Entity::new(2.5, 2.5, 2));
+    entities.push(Entity::new(4.5, 7.5, 1));
+    entities.push(Entity::new(2.5, 7.5, 1));
+    entities.push(Entity::new(2.5, 10.5, 0));
+
+    // TODO:
+    // Use texture IDs instead, to prevent copying?
 
     let mut depth_buffer: [f64; RENDER_WIDTH as usize] = [-1.0; RENDER_WIDTH as usize];
 
@@ -244,58 +325,14 @@ fn main() {
         }
         if input_left {
             player_rotation -= rotation_speed_correct;
+            wrap_angle(&mut player_rotation);
         }
         if input_right {
             player_rotation += rotation_speed_correct;
-        }
-
-        // Clamp player_rotation
-        if player_rotation < 0.0 {
-            player_rotation += TWO_PI;
-        }
-        else if player_rotation >= TWO_PI {
-            player_rotation -= TWO_PI;
+            wrap_angle(&mut player_rotation);
         }
 
         last_tick_time = current_time;
-
-        // Sprite testing
-        let delta_x: f64 = sprite_x - player_x;
-        let delta_y: f64 = sprite_y - player_y;
-        let mut sprite_distance: f64 = f64::sqrt((delta_x * delta_x) + (delta_y * delta_y));
-
-        // The angle between the player and the sprite
-        let mut theta: f64 = f64::atan2(delta_y, delta_x);
-
-        // Clamp theta
-        if theta < 0.0 {
-            theta += TWO_PI;
-        }
-        else if theta >= TWO_PI {
-            theta -= TWO_PI;
-        }
-
-        // The relative angle to the sprite. Between -45 to 45 (FOV is 90) when on screen.
-        let mut gamma: f64 = theta - player_rotation;
-        
-        // Clamp gamma
-        if gamma < 0.0 {
-            gamma += TWO_PI;
-        }
-        else if gamma >= TWO_PI {
-            gamma -= TWO_PI;
-        }
-
-        sprite_distance *= f64::cos(player_rotation - theta);
-
-        // The number of pixels to offset from the center of the screen
-        let sprite_pixel_offset: f64 = f64::tan(gamma) * projection_plane_distance;
-        let sprite_screen_x: i32 = f64::round((RENDER_WIDTH as f64 / 2.0) + sprite_pixel_offset) as i32;
-
-        //println!("{}", (FIELD_OF_VIEW / 2.0).to_degrees());
-        //let sprite_screen_x = ceiling_straight_distance / f64::cos(angle_beta_radians);
-        //println!("sprite_distance = {:.2}, gamma = {:.2}, sprite_screen_x = {:.2}", sprite_distance, gamma.to_degrees(), sprite_screen_x);
-        //player_rotation = theta;
 
         // Render
         if render_timer >= sixty_hz {
@@ -311,16 +348,8 @@ fn main() {
                     // The distance from the viewer to the point on the screen
                     let ray_view_dist = f64::sqrt((ray_screen_x * ray_screen_x) + (projection_plane_distance * projection_plane_distance));
 
-                    let mut ray_angle: f64 = f64::asin(ray_screen_x / ray_view_dist);
-                    ray_angle += player_rotation;
-
-                    // Clamp ray_angle
-                    if ray_angle < 0.0 {
-                        ray_angle += TWO_PI;
-                    }
-                    else if ray_angle >= TWO_PI {
-                        ray_angle -= TWO_PI;
-                    }
+                    let mut ray_angle: f64 = f64::asin(ray_screen_x / ray_view_dist) + player_rotation;
+                    wrap_angle(&mut ray_angle);
 
                     // Check the quadrant of the ray
                     let is_ray_right: bool = ray_angle > (TWO_PI * 0.75) || ray_angle < (TWO_PI * 0.25);
@@ -411,13 +440,10 @@ fn main() {
                         }
 
                         ray_position_x += delta_x;
-                        ray_position_y += delta_y;         
+                        ray_position_y += delta_y;
                     }
 
-                    hit_distance = f64::sqrt(hit_distance);
-
-                    // Adjust to remove fish eye
-                    hit_distance *= f64::cos(player_rotation - ray_angle);
+                    hit_distance = hit_distance.sqrt() * f64::cos(player_rotation - ray_angle);
 
                     // Store the distance in the depth buffer
                     depth_buffer[x] = hit_distance;
@@ -430,8 +456,9 @@ fn main() {
                     let line_screen_start: i32 = (RENDER_HEIGHT as i32 / 2) - (line_height / 2);
                     let line_screen_end: i32 = line_screen_start + line_height;
 
-                    let texture_x: u32 = if tile_side == 0 { 
-                        f64::round(((hit_y - (hit_map_y as f64 * tile_size)) % tile_size) * (TEXTURE_WIDTH - 1) as f64) as u32
+                    let ref wall_texture: Texture = textures[4];
+                    let wall_texture_x: u32 = if tile_side == 0 {
+                        f64::round(((hit_y - (hit_map_y as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64) as u32
                     } else {
                         f64::round(((hit_x - (hit_map_x as f64 * tile_size)) % tile_size) * (TEXTURE_WIDTH - 1) as f64) as u32
                     };
@@ -457,10 +484,12 @@ fn main() {
                             ceiling_hit_x -= ceiling_hit_x.floor();
                             ceiling_hit_y -= ceiling_hit_y.floor();
 
-                            let ceiling_texture_x: u32 = f64::floor(ceiling_hit_x * (TEXTURE_WIDTH - 1) as f64) as u32;
-                            let ceiling_texture_y: u32 = f64::floor(ceiling_hit_y * (TEXTURE_HEIGHT - 1) as f64) as u32;
-                            
-                            let pixel = ceiling_texture[((ceiling_texture_y * TEXTURE_WIDTH) + ceiling_texture_x) as usize];
+                            let ref texture: Texture = textures[6];
+                            let texture_x: u32 = f64::floor(ceiling_hit_x * (texture.width - 1) as f64) as u32;
+                            let texture_y: u32 = f64::floor(ceiling_hit_y * (texture.height - 1) as f64) as u32;
+
+                            // TODO: We are getting these textures for every pixel... can't we cache them somehow?
+                            let pixel = texture.get_pixel(texture_x, texture_y);
 
                             buffer[offset] = pixel.a;
                             buffer[offset + 1] = pixel.b;
@@ -469,10 +498,10 @@ fn main() {
                         }
                         else if ((y as i32) >= line_screen_start) && ((y as i32) < line_screen_end) {
                             // Wall casting
-                            
+
                             let line_y: i32 = y as i32 - line_screen_start;
-                            let texture_y: u32 = f64::floor((line_y as f64 / line_height as f64) * (TEXTURE_HEIGHT - 1) as f64) as u32;
-                            let pixel = wall_texture[((texture_y * TEXTURE_WIDTH) + texture_x) as usize];
+                            let texture_y: u32 = f64::floor((line_y as f64 / line_height as f64) * (wall_texture.height - 1) as f64) as u32;
+                            let pixel = wall_texture.get_pixel(wall_texture_x, texture_y);
 
                             buffer[offset] = pixel.a;
                             buffer[offset + 1] = if tile_side == 1 { pixel.b } else { pixel.g / 2 };
@@ -480,8 +509,8 @@ fn main() {
                             buffer[offset + 3] = if tile_side == 1 { pixel.r } else { pixel.r / 2 };
                         }
                         else if (y as i32) >= line_screen_end {
-                            // Floor casting                          
-                           
+                            // Floor casting
+
                             let player_height: f64 = 0.5;
                             let floor_row: i32 = (y as i32) - (RENDER_HEIGHT as i32 / 2);
 
@@ -496,9 +525,10 @@ fn main() {
                             floor_hit_x -= floor_hit_x.floor();
                             floor_hit_y -= floor_hit_y.floor();
 
-                            let floor_texture_x: u32 = f64::floor(floor_hit_x * (TEXTURE_WIDTH - 1) as f64) as u32;
-                            let floor_texture_y: u32 = f64::floor(floor_hit_y * (TEXTURE_HEIGHT - 1) as f64) as u32;
-                            let pixel = floor_texture[((floor_texture_y * TEXTURE_WIDTH) + floor_texture_x) as usize];
+                            let ref texture: Texture = textures[5];
+                            let texture_x: u32 = f64::floor(floor_hit_x * (texture.width - 1) as f64) as u32;
+                            let texture_y: u32 = f64::floor(floor_hit_y * (texture.height - 1) as f64) as u32;
+                            let pixel = texture.get_pixel(texture_x, texture_y);
 
                             buffer[offset] = pixel.a;
                             buffer[offset + 1] = pixel.b;
@@ -515,72 +545,84 @@ fn main() {
                     }
                 }
 
-                // Sprite rendering
-                let sprite_height: i32 = (f64::round(projection_plane_distance / sprite_distance) as i32).abs();
-                let sprite_width: i32 = (f64::round(projection_plane_distance / sprite_distance) as i32).abs();
-                
-                let sprite_screen_start_x: i32 = sprite_screen_x - (sprite_width / 2);
-                let sprite_screen_end_x: i32 = sprite_screen_x + (sprite_width / 2);
-                let sprite_screen_start_y: i32 = (RENDER_HEIGHT as i32 / 2) - (sprite_height / 2);
-                let sprite_screen_end_y: i32 = (RENDER_HEIGHT as i32 / 2) + (sprite_height / 2);
+                // Sort entities (far to near)
+                entities.sort_by(|a, b| {
+                    let a_distance: f64 = (a.x - player_x).powi(2) + (a.y - player_y).powi(2);
+                    let b_distance: f64 = (b.x - player_x).powi(2) + (b.y - player_y).powi(2);
 
-                let mut camera_min_angle: f64 = -(FIELD_OF_VIEW / 2.0);
-                // Clamp camera_min_angle
-                if camera_min_angle < 0.0 {
-                    camera_min_angle += TWO_PI;
-                }
-                else if camera_min_angle >= TWO_PI {
-                    camera_min_angle -= TWO_PI;
-                }
+                    b_distance.partial_cmp(&a_distance).unwrap()
+                });
 
-                let mut camera_max_angle: f64 = -camera_min_angle;
+                // Render entities
+                for entity in entities.iter() {
+                    let distance_x: f64 = entity.x - player_x;
+                    let distance_y: f64 = entity.y - player_y;
 
-                // The distance from the viewer to the point on the screen
-                let sprite_start_view_dist = f64::sqrt((sprite_screen_start_x * sprite_screen_start_x) as f64 + (projection_plane_distance * projection_plane_distance));
-                let sprite_start_angle: f64 = f64::asin(sprite_screen_start_x as f64 / sprite_start_view_dist);
-                camera_max_angle += sprite_start_angle;
+                    // The angle between the player and the sprite
+                    let mut theta: f64 = f64::atan2(distance_y, distance_x);
+                    wrap_angle(&mut theta);
 
-                // Clamp camera_min_angle
-                if camera_max_angle < 0.0 {
-                    camera_max_angle += TWO_PI;
-                }
-                else if camera_max_angle >= TWO_PI {
-                    camera_max_angle -= TWO_PI;
-                }
+                    // The angle between the player and the sprite, relative to the player rotation
+                    let mut gamma: f64 = theta - player_rotation;
+                    wrap_angle(&mut gamma);
 
-                for sprite_screen_row in sprite_screen_start_x..sprite_screen_end_x {
-                    if (sprite_screen_row < 0) || (sprite_screen_row >= WINDOW_WIDTH as i32) {
-                        continue;
-                    }
+                    let sprite_distance: f64 = f64::sqrt(distance_x.powi(2) + distance_y.powi(2)) * f64::cos(player_rotation - theta);
 
-                    // If the sprite is not visible, don't render it.
-                    if ((gamma < camera_min_angle) && (gamma > camera_max_angle)) || (depth_buffer[sprite_screen_row as usize] < sprite_distance) {
-                        continue;
-                    }
+                    // The number of pixels to offset from the center of the screen
+                    let sprite_pixel_offset: f64 = f64::tan(gamma) * projection_plane_distance;
+                    let sprite_screen_x: i32 = f64::round((RENDER_WIDTH as f64 / 2.0) + sprite_pixel_offset) as i32;
 
-                    for sprite_screen_col in sprite_screen_start_y..sprite_screen_end_y {
-                        if (sprite_screen_col < 0) || (sprite_screen_col >= WINDOW_HEIGHT as i32) {
-                            continue;
-                        }
-                        
-                        let sprite_row = sprite_screen_row - sprite_screen_start_x;
-                        let sprite_col = sprite_screen_col - sprite_screen_start_y;
+                    let sprite_height: i32 = (f64::round(projection_plane_distance / sprite_distance) as i32).abs();
+                    let sprite_width: i32 = (f64::round(projection_plane_distance / sprite_distance) as i32).abs();
 
-                        let texture_x: u32 = f64::round((sprite_row as f64 / sprite_width as f64) * (TEXTURE_WIDTH - 1) as f64) as u32;
-                        let texture_y: u32 = f64::round((sprite_col as f64 / sprite_height as f64) * (TEXTURE_HEIGHT - 1) as f64) as u32;
+                    let sprite_screen_start_x: i32 = sprite_screen_x - (sprite_width / 2);
+                    let sprite_screen_end_x: i32 = sprite_screen_x + (sprite_width / 2);
+                    let sprite_screen_start_y: i32 = -(sprite_height / 2) + (RENDER_HEIGHT as i32 / 2);
+                    let sprite_screen_end_y: i32 = (sprite_height / 2) + (RENDER_HEIGHT as i32 / 2);
 
-                        let offset = ((sprite_screen_col * pitch as i32) + (sprite_screen_row * 4)) as usize;
-                        let pixel = sprite_texture[((texture_y * TEXTURE_WIDTH) + texture_x) as usize];
+                    let mut camera_min_angle: f64 = -FIELD_OF_VIEW / 2.0;
+                    wrap_angle(&mut camera_min_angle);
 
-                        // if pixel is transparent, don't draw it
-                        if pixel.a == 0 {
+                    let mut camera_max_angle: f64 = FIELD_OF_VIEW / 2.0;
+                    wrap_angle(&mut camera_max_angle);
+
+                    let ref texture: Texture = textures[entity.texture_id as usize];
+
+                    for sprite_screen_row in sprite_screen_start_x..sprite_screen_end_x {
+                        if (sprite_screen_row < 0) || (sprite_screen_row >= WINDOW_WIDTH as i32) {
                             continue;
                         }
 
-                        buffer[offset] = pixel.a;
-                        buffer[offset + 1] = pixel.b;
-                        buffer[offset + 2] = pixel.g;
-                        buffer[offset + 3] = pixel.r;
+                        // If the sprite is not visible, don't render it.
+                        if ((gamma < camera_min_angle) && (gamma > camera_max_angle)) ||
+                            (depth_buffer[sprite_screen_row as usize] < sprite_distance) {
+                            continue;
+                        }
+
+                        for sprite_screen_col in sprite_screen_start_y..sprite_screen_end_y {
+                            if (sprite_screen_col < 0) || (sprite_screen_col >= WINDOW_HEIGHT as i32) {
+                                continue;
+                            }
+
+                            let sprite_row = sprite_screen_row - sprite_screen_start_x;
+                            let sprite_col = sprite_screen_col - sprite_screen_start_y;
+
+                            let texture_x: u32 = f64::round((sprite_row as f64 / sprite_width as f64) * (texture.width - 1) as f64) as u32;
+                            let texture_y: u32 = f64::round((sprite_col as f64 / sprite_height as f64) * (texture.height - 1) as f64) as u32;
+
+                            let offset = ((sprite_screen_col * pitch as i32) + (sprite_screen_row * 4)) as usize;
+                            let pixel = texture.get_pixel(texture_x, texture_y);
+
+                            // if pixel is transparent, don't draw it
+                            if pixel.a == 0 {
+                                continue;
+                            }
+
+                            buffer[offset] = pixel.a;
+                            buffer[offset + 1] = pixel.b;
+                            buffer[offset + 2] = pixel.g;
+                            buffer[offset + 3] = pixel.r;
+                        }
                     }
                 }
             }).unwrap();
@@ -591,31 +633,11 @@ fn main() {
     }
 }
 
-fn load_texture(file_name: &str) -> [Color; TEXTURE_SIZE] {
-    let path = Path::new(file_name);
-    let surface = Surface::from_file(path).unwrap();
-    let mut buffer: [Color; TEXTURE_SIZE] = [COLOR_MAGENTA; TEXTURE_SIZE];
-    
-    println!("{}", surface.pixel_format_enum().byte_size_per_pixel());
-
-    surface.with_lock(|surface_buffer: &[u8]| {
-        for x in 0..surface.width() {
-            for y in 0..surface.height() {
-                let texture_pixel_index = 
-                    (y as usize * surface.pitch() as usize) + 
-                    (x as usize * surface.pixel_format_enum().byte_size_per_pixel());
-
-                let color = Color {
-                    r: surface_buffer[texture_pixel_index],
-                    g: surface_buffer[texture_pixel_index + 1],
-                    b: surface_buffer[texture_pixel_index + 2],
-                    a: surface_buffer[texture_pixel_index + 3]
-                };
-
-                buffer[(y as usize * surface.width() as usize) + x as usize] = color;
-            }
-        }
-    });
-
-    buffer
+fn wrap_angle(angle: &mut f64) {
+    if *angle < 0.0 {
+        *angle += TWO_PI;
+    }
+    else if *angle >= TWO_PI {
+        *angle -= TWO_PI;
+    }
 }
