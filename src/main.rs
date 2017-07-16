@@ -186,7 +186,7 @@ fn main() {
     textures.push(Texture::load(4, "wall-stone.png"));
     textures.push(Texture::load(5, "floor-tile.png"));
     textures.push(Texture::load(6, "ceiling-tile.png"));
-    //textures.push(Texture::load(7, "test.png"));
+    textures.push(Texture::load(7, "fists.png"));
 
     let mut entities: Vec<Entity> = Vec::new();
     entities.push(Entity::new(2.5, 2.5, 2));
@@ -623,6 +623,45 @@ fn main() {
                             buffer[offset + 2] = pixel.g;
                             buffer[offset + 3] = pixel.r;
                         }
+                    }
+                }
+
+                // Render weapon
+                let ref texture: Texture = textures[7];
+
+                let weapon_screen_start_x: i32 = (projection_plane_width as i32 / 2) - (texture.width as i32 / 2);
+                let weapon_screen_end_x: i32 = (projection_plane_width as i32 / 2) + (texture.width as i32 / 2);
+                let weapon_screen_start_y: i32 = projection_plane_height as i32 - texture.height as i32;
+                let weapon_screen_end_y: i32 = projection_plane_height as i32;
+
+                for weapon_row in weapon_screen_start_x..weapon_screen_end_x {
+                    if (weapon_screen_start_x < 0) || (weapon_screen_end_x >= projection_plane_width as i32) {
+                        continue;
+                    }
+
+                    for weapon_col in weapon_screen_start_y..weapon_screen_end_y {
+                        if (weapon_col < 0) || (weapon_col >= WINDOW_HEIGHT as i32) {
+                            continue;
+                        }
+
+                        let row: u32 = (weapon_row - weapon_screen_start_x) as u32;
+                        let col: u32 = (weapon_col - weapon_screen_start_y) as u32;
+
+                        //let texture_x: u32 = f64::round((sprite_row as f64 / sprite_width as f64) * (texture.width - 1) as f64) as u32;
+                        //let texture_y: u32 = f64::round((sprite_col as f64 / sprite_height as f64) * (texture.height - 1) as f64) as u32;
+
+                        let pixel = texture.get_pixel(row, col);
+
+                        // if pixel is transparent, don't draw it
+                        if pixel.a == 0 {
+                            continue;
+                        }
+
+                        let offset = ((weapon_col * pitch as i32) + (weapon_row * 4)) as usize;
+                        buffer[offset] = pixel.a;
+                        buffer[offset + 1] = pixel.b;
+                        buffer[offset + 2] = pixel.g;
+                        buffer[offset + 3] = pixel.r;
                     }
                 }
             }).unwrap();
