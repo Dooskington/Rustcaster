@@ -41,7 +41,7 @@ pub const MAP: [u32; MAP_SIZE] =
     1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
     1,1,0,0,0,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,2,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
@@ -361,6 +361,7 @@ fn main() {
                     let mut hit_map_x: i32 = 0;
                     let mut hit_map_y: i32 = 0;
 
+                    let mut tile: u32 = 0;
                     let mut tile_side: i8 = 0; // Either 0 for vertical, or 1 for horizontal
 
                     let tile_size: f64 = 1.0;
@@ -381,8 +382,9 @@ fn main() {
                     while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
                         let tile_map_x: i32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -tile_size })) as i32;
                         let tile_map_y: i32 = f64::floor(ray_position_y) as i32;
+                        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
 
-                        if MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize] > 0 {
+                        if tile == 1 {
                             let distance_x: f64 = ray_position_x - player_x;
                             let distance_y: f64 = ray_position_y - player_y;
                             hit_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
@@ -396,6 +398,43 @@ fn main() {
                             hit_y = ray_position_y;
 
                             break;
+                        }
+
+                        if tile == 2 {
+                            let temp_delta_x: f64 = if is_ray_right { 0.25 } else { -0.25 }; // Horizontal step amount
+                            let temp_delta_y: f64 = temp_delta_x * slope; // Vertical step amount
+
+                            let mut temp_ray_position_x: f64 = ray_position_x + temp_delta_x;
+                            let mut temp_ray_position_y: f64 = ray_position_y + temp_delta_y;
+
+                            let temp_tile_map_x: i32 = f64::floor(temp_ray_position_x) as i32;
+                            let temp_tile_map_y: i32 = f64::floor(temp_ray_position_y) as i32;
+
+                            println!("temp_ray_position_x = {}, temp_ray_position_y = {}, temp_tile_map_x = {}", temp_ray_position_x, temp_ray_position_y, temp_tile_map_x);
+
+                            // If the ray is still within the same tile
+                            if (temp_tile_map_x == tile_map_x) && (temp_tile_map_y == tile_map_y) {
+                                let distance_x: f64 = temp_ray_position_x - player_x;
+                                let distance_y: f64 = temp_ray_position_y - player_y;
+                                hit_distance = distance_x.powi(2) + distance_y.powi(2); // the distance from the player to this point
+
+                                tile_side = 0;
+
+                                hit_map_x = temp_tile_map_x;
+                                hit_map_y = temp_tile_map_y;
+
+                                hit_x = temp_ray_position_x;
+                                hit_y = temp_ray_position_y;
+
+                                break;
+                            }
+                            else
+                            {
+                                // if debug {
+                                //     println!("temp_tile_map_x = {}, temp_tile_map_y = {}, tile_map_x = {}, tile_map_y = {}", temp_tile_map_x, temp_tile_map_y, tile_map_x, tile_map_y);
+                                //     debug = false;
+                                // }
+                            }
                         }
 
                         ray_position_x += delta_x;
@@ -417,8 +456,9 @@ fn main() {
                     while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
                         let tile_map_x: i32 = f64::floor(ray_position_x) as i32;
                         let tile_map_y: i32 = f64::floor(ray_position_y + (if is_ray_up { -tile_size } else { 0.0 })) as i32;
+                        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
 
-                        if MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize] > 0 {
+                        if tile == 1 {
                             let distance_x: f64 = ray_position_x - player_x;
                             let distance_y: f64 = ray_position_y - player_y;
                             let tile_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
@@ -436,6 +476,10 @@ fn main() {
                                 hit_y = ray_position_y;
                             }
 
+                            break;
+                        }
+
+                        if tile == 2 {
                             break;
                         }
 
@@ -627,6 +671,7 @@ fn main() {
                 }
 
                 // Render weapon
+                /*
                 let ref texture: Texture = textures[7];
 
                 let weapon_screen_start_x: i32 = (projection_plane_width as i32 / 2) - (texture.width as i32 / 2);
@@ -664,6 +709,7 @@ fn main() {
                         buffer[offset + 3] = pixel.r;
                     }
                 }
+                */
             }).unwrap();
 
             canvas.copy_ex(&render_texture, None, None, 0.0, None, false, false).unwrap();
