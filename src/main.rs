@@ -41,7 +41,7 @@ pub const MAP: [u32; MAP_SIZE] =
     1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
     1,1,0,0,0,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,2,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
@@ -57,6 +57,15 @@ pub const MAP: [u32; MAP_SIZE] =
     1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+
+struct RayIntersection {
+    pub x: f64,
+    pub y: f64,
+    pub cell_x: i32,
+    pub cell_y: i32,
+    pub cell_side: u8,
+    pub distance: f64
+}
 
 struct Entity {
     pub x: f64,
@@ -325,11 +334,11 @@ fn main() {
         }
         if input_left {
             player_rotation -= rotation_speed_correct;
-            wrap_angle(&mut player_rotation);
+            player_rotation = wrap_angle(player_rotation);
         }
         if input_right {
             player_rotation += rotation_speed_correct;
-            wrap_angle(&mut player_rotation);
+            player_rotation = wrap_angle(player_rotation);
         }
 
         last_tick_time = current_time;
@@ -348,146 +357,14 @@ fn main() {
                     // The distance from the viewer to the point on the screen
                     let ray_view_dist = f64::sqrt((ray_screen_x * ray_screen_x) + (projection_plane_distance * projection_plane_distance));
 
-                    let mut ray_angle: f64 = f64::asin(ray_screen_x / ray_view_dist) + player_rotation;
-                    wrap_angle(&mut ray_angle);
+                    let ray_angle: f64 = f64::asin(ray_screen_x / ray_view_dist) + player_rotation;
+                    let intersection: RayIntersection = cast_ray(player_x, player_y, ray_angle);
 
-                    // Check the quadrant of the ray
-                    let is_ray_right: bool = ray_angle > (TWO_PI * 0.75) || ray_angle < (TWO_PI * 0.25);
-                    let is_ray_up: bool = ray_angle < 0.0 || ray_angle > std::f64::consts::PI;
+                    let hit_distance = intersection.distance.sqrt() * f64::cos(player_rotation - ray_angle);
 
-                    let mut hit_distance: f64 = 0.0; // Distance to tile we hit
-                    let mut hit_x: f64 = 0.0;
-                    let mut hit_y: f64 = 0.0;
-                    let mut hit_map_x: i32 = 0;
-                    let mut hit_map_y: i32 = 0;
+                    let tile_side = intersection.cell_side;
 
-                    let mut tile: u32 = 0;
-                    let mut tile_side: i8 = 0; // Either 0 for vertical, or 1 for horizontal
-
-                    let tile_size: f64 = 1.0;
-
-                    // Check against vertical tile lines
-                    // We do this by moving to the right or left edge of the block we're standing in,
-                    // then moving, in 1 unit steps, horizontally. The amount we have to move vertically
-                    // is determined by the slope of the ray.
-
-                    let mut slope: f64 = f64::sin(ray_angle) / f64::cos(ray_angle);
-                    let mut delta_x: f64 = if is_ray_right { tile_size } else { -tile_size }; // Horizontal step amount
-                    let mut delta_y: f64 = delta_x * slope; // Vertical step amount
-
-                    let mut ray_position_x: f64 = if is_ray_right { f64::ceil(player_x) } else { f64::floor(player_x) }; // Starting horizontal position, at one of the edges of the current map tile
-                    let mut ray_position_y: f64 = player_y + (ray_position_x - player_x) * slope; // Starting vertical position. We add the small horizontal step we just made, multiplied by the slope.
-
-                    // While the ray is still inside the map
-                    while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
-                        let tile_map_x: i32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -tile_size })) as i32;
-                        let tile_map_y: i32 = f64::floor(ray_position_y) as i32;
-                        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
-
-                        if tile == 1 {
-                            let distance_x: f64 = ray_position_x - player_x;
-                            let distance_y: f64 = ray_position_y - player_y;
-                            hit_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
-
-                            tile_side = 0;
-
-                            hit_map_x = tile_map_x;
-                            hit_map_y = tile_map_y;
-
-                            hit_x = ray_position_x;
-                            hit_y = ray_position_y;
-
-                            break;
-                        }
-
-                        if tile == 2 {
-                            let temp_delta_x: f64 = if is_ray_right { 0.25 } else { -0.25 }; // Horizontal step amount
-                            let temp_delta_y: f64 = temp_delta_x * slope; // Vertical step amount
-
-                            let mut temp_ray_position_x: f64 = ray_position_x + temp_delta_x;
-                            let mut temp_ray_position_y: f64 = ray_position_y + temp_delta_y;
-
-                            let temp_tile_map_x: i32 = f64::floor(temp_ray_position_x) as i32;
-                            let temp_tile_map_y: i32 = f64::floor(temp_ray_position_y) as i32;
-
-                            println!("temp_ray_position_x = {}, temp_ray_position_y = {}, temp_tile_map_x = {}", temp_ray_position_x, temp_ray_position_y, temp_tile_map_x);
-
-                            // If the ray is still within the same tile
-                            if (temp_tile_map_x == tile_map_x) && (temp_tile_map_y == tile_map_y) {
-                                let distance_x: f64 = temp_ray_position_x - player_x;
-                                let distance_y: f64 = temp_ray_position_y - player_y;
-                                hit_distance = distance_x.powi(2) + distance_y.powi(2); // the distance from the player to this point
-
-                                tile_side = 0;
-
-                                hit_map_x = temp_tile_map_x;
-                                hit_map_y = temp_tile_map_y;
-
-                                hit_x = temp_ray_position_x;
-                                hit_y = temp_ray_position_y;
-
-                                break;
-                            }
-                            else
-                            {
-                                // if debug {
-                                //     println!("temp_tile_map_x = {}, temp_tile_map_y = {}, tile_map_x = {}, tile_map_y = {}", temp_tile_map_x, temp_tile_map_y, tile_map_x, tile_map_y);
-                                //     debug = false;
-                                // }
-                            }
-                        }
-
-                        ray_position_x += delta_x;
-                        ray_position_y += delta_y;
-                    }
-
-                    // Check against horizontal tile lines.
-                    // The only difference here is that once we hit a tile, we check if there was also one
-                    // found there in the vertical run. If so, we only register this hit if this distance is smaller.
-
-                    slope = f64::cos(ray_angle) / f64::sin(ray_angle);
-                    delta_y = if is_ray_up { -tile_size } else { tile_size }; // Vertical step amount
-                    delta_x = delta_y * slope; // Horizontal step amount
-
-                    ray_position_y = if is_ray_up { f64::floor(player_y) } else { f64::ceil(player_y) };
-                    ray_position_x = player_x + (ray_position_y - player_y) * slope;
-
-                    // While the ray is still inside the map
-                    while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
-                        let tile_map_x: i32 = f64::floor(ray_position_x) as i32;
-                        let tile_map_y: i32 = f64::floor(ray_position_y + (if is_ray_up { -tile_size } else { 0.0 })) as i32;
-                        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
-
-                        if tile == 1 {
-                            let distance_x: f64 = ray_position_x - player_x;
-                            let distance_y: f64 = ray_position_y - player_y;
-                            let tile_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
-
-                            if hit_distance == 0.0 || tile_distance < hit_distance
-                            {
-                                hit_distance = tile_distance;
-
-                                tile_side = 1;
-
-                                hit_map_x = tile_map_x;
-                                hit_map_y = tile_map_y;
-
-                                hit_x = ray_position_x;
-                                hit_y = ray_position_y;
-                            }
-
-                            break;
-                        }
-
-                        if tile == 2 {
-                            break;
-                        }
-
-                        ray_position_x += delta_x;
-                        ray_position_y += delta_y;
-                    }
-
-                    hit_distance = hit_distance.sqrt() * f64::cos(player_rotation - ray_angle);
+                    let tile_size = 1.0;
 
                     // Store the distance in the depth buffer
                     depth_buffer[x] = hit_distance;
@@ -502,9 +379,9 @@ fn main() {
 
                     let ref wall_texture: Texture = textures[4];
                     let wall_texture_x: u32 = if tile_side == 0 {
-                        f64::round(((hit_y - (hit_map_y as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64) as u32
+                        f64::round(((intersection.y - (intersection.cell_y as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64) as u32
                     } else {
-                        f64::round(((hit_x - (hit_map_x as f64 * tile_size)) % tile_size) * (TEXTURE_WIDTH - 1) as f64) as u32
+                        f64::round(((intersection.x - (intersection.cell_x as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64) as u32
                     };
 
                     for y in 0..(RENDER_HEIGHT as usize) {
@@ -604,11 +481,11 @@ fn main() {
 
                     // The angle between the player and the sprite
                     let mut theta: f64 = f64::atan2(distance_y, distance_x);
-                    wrap_angle(&mut theta);
+                    theta = wrap_angle(theta);
 
                     // The angle between the player and the sprite, relative to the player rotation
                     let mut gamma: f64 = theta - player_rotation;
-                    wrap_angle(&mut gamma);
+                    gamma = wrap_angle(gamma);
 
                     let sprite_distance: f64 = f64::sqrt(distance_x.powi(2) + distance_y.powi(2)) * f64::cos(player_rotation - theta);
 
@@ -625,10 +502,10 @@ fn main() {
                     let sprite_screen_end_y: i32 = (sprite_height / 2) + (RENDER_HEIGHT as i32 / 2);
 
                     let mut camera_min_angle: f64 = -FIELD_OF_VIEW / 2.0;
-                    wrap_angle(&mut camera_min_angle);
+                    camera_min_angle = wrap_angle(camera_min_angle);
 
                     let mut camera_max_angle: f64 = FIELD_OF_VIEW / 2.0;
-                    wrap_angle(&mut camera_max_angle);
+                    camera_max_angle = wrap_angle(camera_max_angle);
 
                     let ref texture: Texture = textures[entity.texture_id as usize];
 
@@ -718,11 +595,120 @@ fn main() {
     }
 }
 
-fn wrap_angle(angle: &mut f64) {
-    if *angle < 0.0 {
-        *angle += TWO_PI;
+fn wrap_angle(angle: f64) -> f64 {
+    if angle < 0.0 {
+        return angle + TWO_PI;
     }
-    else if *angle >= TWO_PI {
-        *angle -= TWO_PI;
+    else if angle >= TWO_PI {
+        return angle - TWO_PI;
+    }
+
+    angle
+}
+
+fn cast_ray(origin_x: f64, origin_y: f64, angle: f64) -> RayIntersection {
+    let angle = wrap_angle(angle);
+
+    // Check the quadrant of the ray
+    let is_ray_right: bool = angle > (TWO_PI * 0.75) || angle < (TWO_PI * 0.25);
+    let is_ray_up: bool = angle < 0.0 || angle > std::f64::consts::PI;
+
+    let mut hit_distance: f64 = 0.0; // Distance to tile we hit
+    let mut hit_x: f64 = 0.0;
+    let mut hit_y: f64 = 0.0;
+    let mut hit_map_x: i32 = 0;
+    let mut hit_map_y: i32 = 0;
+
+    let mut tile: u32 = 0;
+    let mut tile_side: u8 = 0; // Either 0 for vertical, or 1 for horizontal
+
+    let tile_size: f64 = 1.0;
+
+    // Check against vertical tile lines
+    // We do this by moving to the right or left edge of the block we're standing in,
+    // then moving, in 1 unit steps, horizontally. The amount we have to move vertically
+    // is determined by the slope of the ray.
+
+    let mut slope: f64 = f64::sin(angle) / f64::cos(angle);
+    let mut delta_x: f64 = if is_ray_right { tile_size } else { -tile_size }; // Horizontal step amount
+    let mut delta_y: f64 = delta_x * slope; // Vertical step amount
+
+    let mut ray_position_x: f64 = if is_ray_right { f64::ceil(origin_x) } else { f64::floor(origin_x) }; // Starting horizontal position, at one of the edges of the current map tile
+    let mut ray_position_y: f64 = origin_y + (ray_position_x - origin_x) * slope; // Starting vertical position. We add the small horizontal step we just made, multiplied by the slope.
+
+    // While the ray is still inside the map
+    while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
+        let tile_map_x: i32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -tile_size })) as i32;
+        let tile_map_y: i32 = f64::floor(ray_position_y) as i32;
+        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
+
+        if tile == 1 {
+            let distance_x: f64 = ray_position_x - origin_x;
+            let distance_y: f64 = ray_position_y - origin_y;
+            hit_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
+
+            tile_side = 0;
+
+            hit_map_x = tile_map_x;
+            hit_map_y = tile_map_y;
+
+            hit_x = ray_position_x;
+            hit_y = ray_position_y;
+
+            break;
+        }
+
+        ray_position_x += delta_x;
+        ray_position_y += delta_y;
+    }
+
+    // Check against horizontal tile lines.
+    // The only difference here is that once we hit a tile, we check if there was also one
+    // found there in the vertical run. If so, we only register this hit if this distance is smaller.
+
+    slope = f64::cos(angle) / f64::sin(angle);
+    delta_y = if is_ray_up { -tile_size } else { tile_size }; // Vertical step amount
+    delta_x = delta_y * slope; // Horizontal step amount
+
+    ray_position_y = if is_ray_up { f64::floor(origin_y) } else { f64::ceil(origin_y) };
+    ray_position_x = origin_x + (ray_position_y - origin_y) * slope;
+
+    // While the ray is still inside the map
+    while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
+        let tile_map_x: i32 = f64::floor(ray_position_x) as i32;
+        let tile_map_y: i32 = f64::floor(ray_position_y + (if is_ray_up { -tile_size } else { 0.0 })) as i32;
+        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
+
+        if tile == 1 {
+            let distance_x: f64 = ray_position_x - origin_x;
+            let distance_y: f64 = ray_position_y - origin_y;
+            let tile_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
+
+            if hit_distance == 0.0 || tile_distance < hit_distance {
+                hit_distance = tile_distance;
+
+                tile_side = 1;
+
+                hit_map_x = tile_map_x;
+                hit_map_y = tile_map_y;
+
+                hit_x = ray_position_x;
+                hit_y = ray_position_y;
+            }
+
+            break;
+        }
+
+        ray_position_x += delta_x;
+        ray_position_y += delta_y;
+    }
+
+    RayIntersection {
+        x: hit_x,
+        y: hit_y,
+        cell_x: hit_map_x,
+        cell_y: hit_map_y,
+        cell_side: tile_side,
+        distance: hit_distance
     }
 }
