@@ -26,37 +26,12 @@ pub const FIELD_OF_VIEW: f64 = 90.0 * (std::f64::consts::PI / 180.0);
 pub const COLOR_BLACK: Color = Color { r: 255, g: 255, b: 255, a: 255 };
 pub const COLOR_MAGENTA: Color = Color { r: 255, g: 0, b: 255, a: 255 };
 
-pub const MAP: [u32; MAP_SIZE] =
-   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,
-    1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,1,
-    1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
-    1,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,
-    1,1,0,0,0,1,1,0,0,0,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,
-    1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+#[derive(Copy, Clone)]
+struct Cell {
+    pub x: i32,
+    pub y: i32,
+    pub texture_id: u32
+}
 
 struct RayIntersection {
     pub x: f64,
@@ -95,13 +70,9 @@ impl Texture {
     pub fn load(texture_id: u32, file_name: &str) -> Texture {
         let path = Path::new(file_name);
         let surface = Surface::from_file(path).unwrap();
-        let mut pixels: Vec<Color> = Vec::with_capacity((surface.width() * surface.height()) as usize);
-        for i in 0..(surface.width() * surface.height()) as usize {
-            pixels.push(COLOR_MAGENTA);
-        }
 
-        let bytes_per_pixel = surface.pixel_format_enum().byte_size_per_pixel();
-        println!("Loading texture {} with {} bytes per pixel...", file_name, bytes_per_pixel);
+        let mut pixels: Vec<Color> = Vec::new();
+        pixels.resize((surface.width() * surface.height()) as usize, COLOR_MAGENTA);
 
         surface.with_lock(|surface_buffer: &[u8]| {
             for x in 0..surface.width() {
@@ -179,13 +150,11 @@ fn main() {
     let projection_plane_distance: f64 = (projection_plane_width / 2.0) / f64::tan(FIELD_OF_VIEW / 2.0);
 
     let move_speed: f64 = 4.0;
-    let rotation_speed: f64 = 145.0;
-    let rotation_speed_radians: f64 = rotation_speed * (TWO_PI / 180.0) as f64;
+    let rotation_speed: f64 = f64::to_radians(145.0);
+    let rotation_speed_radians: f64 = rotation_speed;
     let mut player_x: f64 = 3.5;
     let mut player_y: f64 = 10.5;
     let mut player_rotation: f64 = 0.0;
-
-    let mut debug: bool = false;
 
     let mut textures: Vec<Texture> = Vec::new();
     textures.push(Texture::load(0, "barrel-0.png"));
@@ -203,8 +172,18 @@ fn main() {
     entities.push(Entity::new(2.5, 7.5, 1));
     entities.push(Entity::new(2.5, 10.5, 0));
 
-    // TODO:
-    // Use texture IDs instead, to prevent copying?
+    let mut map: Vec<Option<Cell>> = Vec::new();
+    map.resize(MAP_SIZE, None);
+    
+    // Construct map
+    for x in 0..MAP_WIDTH {
+        for y in 0..MAP_HEIGHT {
+            if x == 0 || x == (MAP_WIDTH - 1) || y == 0 || y == (MAP_HEIGHT - 1) {
+                let cell: Cell = Cell {x: x as i32, y: y as i32, texture_id: 4};
+                map[((y * MAP_WIDTH) + x) as usize] = Some(cell);
+            }
+        }
+    }
 
     let mut depth_buffer: [f64; RENDER_WIDTH as usize] = [-1.0; RENDER_WIDTH as usize];
 
@@ -258,10 +237,7 @@ fn main() {
                 Event::KeyUp { keycode: Some(Keycode::Down), .. } | Event::KeyUp { keycode: Some(Keycode::S), .. } => {
                     input_down = false;
                 },
-                Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
-                    debug = true;
-                },
-
+                
                 _ => {}
             }
         }
@@ -279,66 +255,64 @@ fn main() {
         if input_up
         {
             let new_player_x = player_x + ((f64::cos(player_rotation) * move_speed) * delta_time);
-            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
-            if next_tile_x == 0 {
+            let next_tile_x = map[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x.is_none() {
                 player_x = new_player_x;
             }
 
             let new_player_y = player_y + ((f64::sin(player_rotation) * move_speed) * delta_time);
-            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
-            if next_tile_y == 0 {
+            let next_tile_y = map[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y.is_none() {
                 player_y = new_player_y;
             }
         }
         if input_down
         {
             let new_player_x = player_x - ((f64::cos(player_rotation) * move_speed) * delta_time);
-            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
-            if next_tile_x == 0 {
+            let next_tile_x = map[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x.is_none() {
                 player_x = new_player_x;
             }
 
             let new_player_y = player_y - ((f64::sin(player_rotation) * move_speed) * delta_time);
-            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
-            if next_tile_y == 0 {
+            let next_tile_y = map[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y.is_none() {
                 player_y = new_player_y;
             }
         }
         if input_q
         {
             let new_player_x = player_x - ((f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
-            if next_tile_x == 0 {
+            let next_tile_x = map[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x.is_none() {
                 player_x = new_player_x;
             }
 
             let new_player_y = player_y - ((f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
-            if next_tile_y == 0 {
+            let next_tile_y = map[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y.is_none() {
                 player_y = new_player_y;
             }
         }
         if input_e
         {
             let new_player_x = player_x + ((f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_x = MAP[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
-            if next_tile_x == 0 {
+            let next_tile_x = map[((player_y as usize * MAP_WIDTH as usize) + new_player_x as usize)];
+            if next_tile_x.is_none() {
                 player_x = new_player_x;
             }
 
             let new_player_y = player_y + ((f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_y = MAP[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
-            if next_tile_y == 0 {
+            let next_tile_y = map[((new_player_y as usize * MAP_WIDTH as usize) + player_x as usize)];
+            if next_tile_y.is_none() {
                 player_y = new_player_y;
             }
         }
         if input_left {
-            player_rotation -= rotation_speed_correct;
-            player_rotation = wrap_angle(player_rotation);
+            player_rotation = wrap_angle(player_rotation - rotation_speed_correct);
         }
         if input_right {
-            player_rotation += rotation_speed_correct;
-            player_rotation = wrap_angle(player_rotation);
+            player_rotation = wrap_angle(player_rotation + rotation_speed_correct);
         }
 
         last_tick_time = current_time;
@@ -355,12 +329,12 @@ fn main() {
                     let ray_screen_x: f64 = -(RENDER_WIDTH as f64) / 2.0 + x as f64;
 
                     // The distance from the viewer to the point on the screen
-                    let ray_view_dist = f64::sqrt((ray_screen_x * ray_screen_x) + (projection_plane_distance * projection_plane_distance));
+                    let ray_view_dist = (ray_screen_x.powi(2) + projection_plane_distance.powi(2)).sqrt();
 
-                    let ray_angle: f64 = f64::asin(ray_screen_x / ray_view_dist) + player_rotation;
-                    let intersection: RayIntersection = cast_ray(player_x, player_y, ray_angle);
+                    let ray_angle: f64 = (ray_screen_x / ray_view_dist).asin() + player_rotation;
+                    let intersection: RayIntersection = cast_ray(player_x, player_y, ray_angle, &map);
 
-                    let hit_distance = intersection.distance.sqrt() * f64::cos(player_rotation - ray_angle);
+                    let hit_distance = intersection.distance.sqrt() * (player_rotation - ray_angle).cos();
 
                     let tile_side = intersection.cell_side;
 
@@ -373,15 +347,15 @@ fn main() {
                     // The wall height is 1 unit, the distance from the player to the screen is viewDist,
                     // thus the height on the screen is equal to
                     // wallHeight * viewDist / dist
-                    let line_height: i32 = f64::round((tile_size * projection_plane_distance) / hit_distance) as i32;
+                    let line_height: i32 = ((tile_size * projection_plane_distance) / hit_distance).round() as i32;
                     let line_screen_start: i32 = (RENDER_HEIGHT as i32 / 2) - (line_height / 2);
                     let line_screen_end: i32 = line_screen_start + line_height;
 
                     let ref wall_texture: Texture = textures[4];
                     let wall_texture_x: u32 = if tile_side == 0 {
-                        f64::round(((intersection.y - (intersection.cell_y as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64) as u32
+                        (((intersection.y - (intersection.cell_y as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64).round() as u32
                     } else {
-                        f64::round(((intersection.x - (intersection.cell_x as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64) as u32
+                        (((intersection.x - (intersection.cell_x as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64).round() as u32
                     };
 
                     for y in 0..(RENDER_HEIGHT as usize) {
@@ -397,10 +371,10 @@ fn main() {
                             let ceiling_straight_distance = (player_height / ceiling_row as f64) * projection_plane_distance;
                             let angle_beta_radians = player_rotation - ray_angle;
 
-                            let floor_actual_distance = ceiling_straight_distance / f64::cos(angle_beta_radians);
+                            let floor_actual_distance = ceiling_straight_distance / angle_beta_radians.cos();
 
-                            let mut ceiling_hit_x: f64 = player_x - (floor_actual_distance * f64::cos(ray_angle));
-                            let mut ceiling_hit_y: f64 = player_y - (floor_actual_distance * f64::sin(ray_angle));
+                            let mut ceiling_hit_x: f64 = player_x - (floor_actual_distance * ray_angle.cos());
+                            let mut ceiling_hit_y: f64 = player_y - (floor_actual_distance * ray_angle.sin());
 
                             ceiling_hit_x -= ceiling_hit_x.floor();
                             ceiling_hit_y -= ceiling_hit_y.floor();
@@ -606,51 +580,44 @@ fn wrap_angle(angle: f64) -> f64 {
     angle
 }
 
-fn cast_ray(origin_x: f64, origin_y: f64, angle: f64) -> RayIntersection {
-    let angle = wrap_angle(angle);
+fn cast_ray(origin_x: f64, origin_y: f64, angle: f64, map: &Vec<Option<Cell>>) -> RayIntersection {
+    let mut intersection_distance: f64 = 0.0; // Distance from origin to intersection
+    let mut hit_x: f64 = 0.0; // Intersection point x
+    let mut hit_y: f64 = 0.0; // Intersection point y
+    let mut hit_cell_x: i32 = 0; // Intersected cell x
+    let mut hit_cell_y: i32 = 0; // Intersected cell y
+    let mut hit_edge: u8 = 0; // 0 for y-axis, or 1 for x-axis
 
-    // Check the quadrant of the ray
+    let cell_size: f64 = 1.0;
+
+    // Calculate the quadrant up the ray
+    let angle = wrap_angle(angle);
     let is_ray_right: bool = angle > (TWO_PI * 0.75) || angle < (TWO_PI * 0.25);
     let is_ray_up: bool = angle < 0.0 || angle > std::f64::consts::PI;
 
-    let mut hit_distance: f64 = 0.0; // Distance to tile we hit
-    let mut hit_x: f64 = 0.0;
-    let mut hit_y: f64 = 0.0;
-    let mut hit_map_x: i32 = 0;
-    let mut hit_map_y: i32 = 0;
+    // Check for vertical (y axis) intersections
 
-    let mut tile: u32 = 0;
-    let mut tile_side: u8 = 0; // Either 0 for vertical, or 1 for horizontal
-
-    let tile_size: f64 = 1.0;
-
-    // Check against vertical tile lines
-    // We do this by moving to the right or left edge of the block we're standing in,
-    // then moving, in 1 unit steps, horizontally. The amount we have to move vertically
-    // is determined by the slope of the ray.
-
-    let mut slope: f64 = f64::sin(angle) / f64::cos(angle);
-    let mut delta_x: f64 = if is_ray_right { tile_size } else { -tile_size }; // Horizontal step amount
+    let mut slope: f64 = angle.sin() / angle.cos();
+    let mut delta_x: f64 = if is_ray_right { cell_size } else { -cell_size }; // Horizontal step amount
     let mut delta_y: f64 = delta_x * slope; // Vertical step amount
 
-    let mut ray_position_x: f64 = if is_ray_right { f64::ceil(origin_x) } else { f64::floor(origin_x) }; // Starting horizontal position, at one of the edges of the current map tile
-    let mut ray_position_y: f64 = origin_y + (ray_position_x - origin_x) * slope; // Starting vertical position. We add the small horizontal step we just made, multiplied by the slope.
+    // Calculate the ray starting position
+    let mut ray_position_x: f64 = if is_ray_right { f64::ceil(origin_x) } else { f64::floor(origin_x) };
+    let mut ray_position_y: f64 = origin_y + (ray_position_x - origin_x) * slope;
 
-    // While the ray is still inside the map
     while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
-        let tile_map_x: i32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -tile_size })) as i32;
+        let tile_map_x: i32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -cell_size })) as i32;
         let tile_map_y: i32 = f64::floor(ray_position_y) as i32;
-        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
 
-        if tile == 1 {
+        if let Some(cell) = map[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize] {
             let distance_x: f64 = ray_position_x - origin_x;
             let distance_y: f64 = ray_position_y - origin_y;
-            hit_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
+            intersection_distance = distance_x.powi(2) + distance_y.powi(2);
 
-            tile_side = 0;
+            hit_edge = 0;
 
-            hit_map_x = tile_map_x;
-            hit_map_y = tile_map_y;
+            hit_cell_x = cell.x;
+            hit_cell_y = cell.y;
 
             hit_x = ray_position_x;
             hit_y = ray_position_y;
@@ -662,35 +629,31 @@ fn cast_ray(origin_x: f64, origin_y: f64, angle: f64) -> RayIntersection {
         ray_position_y += delta_y;
     }
 
-    // Check against horizontal tile lines.
-    // The only difference here is that once we hit a tile, we check if there was also one
-    // found there in the vertical run. If so, we only register this hit if this distance is smaller.
+    // Check for horizontal (x axis) intersections
 
-    slope = f64::cos(angle) / f64::sin(angle);
-    delta_y = if is_ray_up { -tile_size } else { tile_size }; // Vertical step amount
+    slope = angle.cos() / angle.sin();
+    delta_y = if is_ray_up { -cell_size } else { cell_size }; // Vertical step amount
     delta_x = delta_y * slope; // Horizontal step amount
 
+    // Calculate the ray starting position
     ray_position_y = if is_ray_up { f64::floor(origin_y) } else { f64::ceil(origin_y) };
     ray_position_x = origin_x + (ray_position_y - origin_y) * slope;
 
-    // While the ray is still inside the map
     while (ray_position_x >= 0.0) && (ray_position_x < MAP_WIDTH as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_HEIGHT as f64) {
         let tile_map_x: i32 = f64::floor(ray_position_x) as i32;
-        let tile_map_y: i32 = f64::floor(ray_position_y + (if is_ray_up { -tile_size } else { 0.0 })) as i32;
-        tile = MAP[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize];
+        let tile_map_y: i32 = f64::floor(ray_position_y + (if is_ray_up { -cell_size } else { 0.0 })) as i32;
 
-        if tile == 1 {
+        if let Some(cell) = map[((tile_map_y * MAP_WIDTH as i32) + tile_map_x) as usize] {
             let distance_x: f64 = ray_position_x - origin_x;
             let distance_y: f64 = ray_position_y - origin_y;
-            let tile_distance = (distance_x * distance_x) + (distance_y * distance_y); // the distance from the player to this point, squared.
+            let x_intersection_distance = distance_x.powi(2) + distance_y.powi(2);
 
-            if hit_distance == 0.0 || tile_distance < hit_distance {
-                hit_distance = tile_distance;
+            if (intersection_distance == 0.0) || (x_intersection_distance < intersection_distance) {
+                intersection_distance = x_intersection_distance;
+                hit_edge = 1;
 
-                tile_side = 1;
-
-                hit_map_x = tile_map_x;
-                hit_map_y = tile_map_y;
+                hit_cell_x = cell.x;
+                hit_cell_y = cell.y;
 
                 hit_x = ray_position_x;
                 hit_y = ray_position_y;
@@ -706,9 +669,9 @@ fn cast_ray(origin_x: f64, origin_y: f64, angle: f64) -> RayIntersection {
     RayIntersection {
         x: hit_x,
         y: hit_y,
-        cell_x: hit_map_x,
-        cell_y: hit_map_y,
-        cell_side: tile_side,
-        distance: hit_distance
+        cell_x: hit_cell_x,
+        cell_y: hit_cell_y,
+        cell_side: hit_edge,
+        distance: intersection_distance
     }
 }
