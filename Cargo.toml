@@ -5,9 +5,3 @@ authors = ["Declan Hopkins <hopkins.declan@gmail.com>"]
 
 [dependencies]
 time = "0.1.38"
-rand = "0.3.15"
-
-[dependencies.sdl2]
-version = "0.30"
-default-features = false
-features = ["image"]
