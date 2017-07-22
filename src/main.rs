@@ -40,7 +40,7 @@ pub fn load_texture(texture_id: u32, file_name: &str) -> Texture {
         }
     });
 
-    Texture::new(texture_id, surface.width(), surface.height(), &pixels)
+    Texture::new(texture_id, surface.width(), surface.height(), pixels)
 }
 
 fn main() {

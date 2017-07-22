@@ -43,12 +43,12 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn new(texture_id: u32, width: u32, height: u32, pixels: &Vec<Color>) -> Texture {
+    pub fn new(texture_id: u32, width: u32, height: u32, pixels: Vec<Color>) -> Texture {
         Texture {
             texture_id: texture_id,
             width: width,
             height: height,
-            pixels: pixels.clone()
+            pixels: pixels
         }
     }
 
@@ -85,6 +85,7 @@ impl Engine {
     }
 
     pub fn render(&mut self, render_buffer: &mut [u8], pitch: usize, cells: &Vec<Option<Cell>>, sprites: &mut Vec<Sprite>, textures: &Vec<Texture>, origin_x: f64, origin_y: f64, rotation: f64) {
+        // Cast rays to render map
         for x in 0..(self.projection_width as usize) {
             // Where on the screen the ray goes through
             let ray_screen_x: f64 = -(self.projection_width as f64) / 2.0 + x as f64;
@@ -92,28 +93,29 @@ impl Engine {
             // The distance from the viewer to the point on the screen
             let ray_view_dist = (ray_screen_x.powi(2) + self.projection_distance.powi(2)).sqrt();
 
+            // Calculate the angle of the ray, and cast it against the map
             let ray_angle: f64 = (ray_screen_x / ray_view_dist).asin() + rotation;
             let intersection: RayIntersection = self.cast_ray(origin_x, origin_y, ray_angle, cells);
 
-            let hit_distance = intersection.distance.sqrt() * (rotation - ray_angle).cos();
-
-            let tile_side = intersection.cell_side;
+            // Calculate the actual distance
+            let intersection_distance = intersection.distance.sqrt() * (rotation - ray_angle).cos();
+            self.depth_buffer.push(intersection_distance);
 
             let tile_size = 1.0;
-
-            // Store the distance in the depth buffer
-            self.depth_buffer.push(hit_distance);
 
             // Calculate the position and height of the wall strip.
             // The wall height is 1 unit, the distance from the player to the screen is viewDist,
             // thus the height on the screen is equal to
             // wallHeight * viewDist / dist
-            let line_height: i32 = ((tile_size * self.projection_distance) / hit_distance).round() as i32;
+            let line_height: i32 = ((tile_size * self.projection_distance) / intersection_distance).round() as i32;
             let line_screen_start: i32 = (self.projection_height as i32 / 2) - (line_height / 2);
             let line_screen_end: i32 = line_screen_start + line_height;
 
             let ref wall_texture: Texture = textures[4];
-            let wall_texture_x: u32 = if tile_side == 0 {
+            let ref ceiling_texture: Texture = textures[6];
+            let ref floor_texture: Texture = textures[5];
+
+            let wall_texture_x: u32 = if intersection.cell_side == 0 {
                 (((intersection.y - (intersection.cell_y as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64).round() as u32
             } else {
                 (((intersection.x - (intersection.cell_x as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64).round() as u32
@@ -139,12 +141,10 @@ impl Engine {
                     ceiling_hit_x -= ceiling_hit_x.floor();
                     ceiling_hit_y -= ceiling_hit_y.floor();
 
-                    // TODO: We are getting these textures for every pixel... can't we cache them somehow?
-                    let ref texture: Texture = textures[6];
-                    let texture_x: u32 = f64::floor(ceiling_hit_x * (texture.width - 1) as f64) as u32;
-                    let texture_y: u32 = f64::floor(ceiling_hit_y * (texture.height - 1) as f64) as u32;
+                    let texture_x: u32 = f64::floor(ceiling_hit_x * (ceiling_texture.width - 1) as f64) as u32;
+                    let texture_y: u32 = f64::floor(ceiling_hit_y * (ceiling_texture.height - 1) as f64) as u32;
 
-                    let pixel = texture.get_pixel(texture_x, texture_y);
+                    let pixel = ceiling_texture.get_pixel(texture_x, texture_y);
 
                     render_buffer[offset] = pixel.a;
                     render_buffer[offset + 1] = pixel.b;
@@ -159,9 +159,9 @@ impl Engine {
                     let pixel = wall_texture.get_pixel(wall_texture_x, texture_y);
 
                     render_buffer[offset] = pixel.a;
-                    render_buffer[offset + 1] = if tile_side == 1 { pixel.b } else { pixel.g / 2 };
-                    render_buffer[offset + 2] = if tile_side == 1 { pixel.g } else { pixel.b / 2 };
-                    render_buffer[offset + 3] = if tile_side == 1 { pixel.r } else { pixel.r / 2 };
+                    render_buffer[offset + 1] = if intersection.cell_side == 1 { pixel.b } else { pixel.g / 2 };
+                    render_buffer[offset + 2] = if intersection.cell_side == 1 { pixel.g } else { pixel.b / 2 };
+                    render_buffer[offset + 3] = if intersection.cell_side == 1 { pixel.r } else { pixel.r / 2 };
                 }
                 else if (y as i32) >= line_screen_end {
                     // Floor casting
@@ -180,10 +180,9 @@ impl Engine {
                     floor_hit_x -= floor_hit_x.floor();
                     floor_hit_y -= floor_hit_y.floor();
 
-                    let ref texture: Texture = textures[5];
-                    let texture_x: u32 = f64::floor(floor_hit_x * (texture.width - 1) as f64) as u32;
-                    let texture_y: u32 = f64::floor(floor_hit_y * (texture.height - 1) as f64) as u32;
-                    let pixel = texture.get_pixel(texture_x, texture_y);
+                    let texture_x: u32 = f64::floor(floor_hit_x * (floor_texture.width - 1) as f64) as u32;
+                    let texture_y: u32 = f64::floor(floor_hit_y * (floor_texture.height - 1) as f64) as u32;
+                    let pixel = floor_texture.get_pixel(texture_x, texture_y);
 
                     render_buffer[offset] = pixel.a;
                     render_buffer[offset + 1] = pixel.b;
