@@ -1,7 +1,13 @@
 [package]
-name = "rustcaster"
+name = "rustcaster-demo"
 version = "0.1.0"
 authors = ["Declan Hopkins <hopkins.declan@gmail.com>"]
 
 [dependencies]
+rustcaster = { path = "rustcaster-lib" }
 time = "0.1.38"
+
+[dependencies.sdl2]
+version = "0.30"
+default-features = false
+features = ["image"]

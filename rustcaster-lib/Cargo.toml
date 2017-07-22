@@ -1,0 +1,7 @@
+[package]
+name = "rustcaster"
+version = "0.1.0"
+authors = ["Declan Hopkins <hopkins.declan@gmail.com>"]
+
+[dependencies]
+time = "0.1.38"
