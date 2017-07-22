@@ -252,7 +252,7 @@ fn main() {
             canvas.clear();
 
             render_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                engine.render(buffer, &map, &sprites, &textures, player_x, player_y, player_rotation);
+                engine.render(buffer, pitch, &map, &mut sprites, &textures, player_x, player_y, player_rotation);
             }).unwrap();
 
             canvas.copy_ex(&render_texture, None, None, 0.0, None, false, false).unwrap();

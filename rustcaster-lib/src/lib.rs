@@ -84,10 +84,7 @@ impl Engine {
         }
     }
 
-    pub fn render(&mut self, render_buffer: &mut [u8], cells: &Vec<Option<Cell>>, sprites: &Vec<Sprite>, textures: &Vec<Texture>, origin_x: f64, origin_y: f64, rotation: f64) {
-        // pitch is WIDTH * bytes per pixel
-        let pitch: usize = (self.projection_width as usize) * 4;
-
+    pub fn render(&mut self, render_buffer: &mut [u8], pitch: usize, cells: &Vec<Option<Cell>>, sprites: &mut Vec<Sprite>, textures: &Vec<Texture>, origin_x: f64, origin_y: f64, rotation: f64) {
         for x in 0..(self.projection_width as usize) {
             // Where on the screen the ray goes through
             let ray_screen_x: f64 = -(self.projection_width as f64) / 2.0 + x as f64;
@@ -204,14 +201,12 @@ impl Engine {
         }
 
         // Sort sprites (far to near)
-        /*
         sprites.sort_by(|a, b| {
             let a_distance: f64 = (a.x - origin_x).powi(2) + (a.y - origin_y).powi(2);
             let b_distance: f64 = (b.x - origin_x).powi(2) + (b.y - origin_y).powi(2);
 
             b_distance.partial_cmp(&a_distance).unwrap()
         });
-        */
 
         // Render sprites
         for sprite in sprites.iter() {
