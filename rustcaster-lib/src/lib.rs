@@ -101,25 +101,28 @@ impl Engine {
             let intersection_distance = intersection.distance.sqrt() * (rotation - ray_angle).cos();
             self.depth_buffer.push(intersection_distance);
 
-            let tile_size = 1.0;
+            let cell_width = 1.0;
+            let cell_height = 1.0;
+            let cell = cells[((intersection.cell_y * MAP_SIZE as i32) + intersection.cell_x) as usize].unwrap();
+
+            let ref wall_texture: Texture = textures[cell.texture_id as usize];
+            let ref ceiling_texture: Texture = textures[6];
+            let ref floor_texture: Texture = textures[5];
+
+            // Calculate the x texel of this wall strip
+            let wall_texture_x: u32 = if intersection.cell_side == 0 {
+                (((intersection.y - (intersection.cell_y as f64 * cell_width)) % cell_width) * (wall_texture.width - 1) as f64).round() as u32
+            } else {
+                (((intersection.x - (intersection.cell_x as f64 * cell_width)) % cell_width) * (wall_texture.width - 1) as f64).round() as u32
+            };
 
             // Calculate the position and height of the wall strip.
             // The wall height is 1 unit, the distance from the player to the screen is viewDist,
             // thus the height on the screen is equal to
             // wallHeight * viewDist / dist
-            let line_height: i32 = ((tile_size * self.projection_distance) / intersection_distance).round() as i32;
+            let line_height: i32 = ((cell_height * self.projection_distance) / intersection_distance).round() as i32;
             let line_screen_start: i32 = (self.projection_height as i32 / 2) - (line_height / 2);
             let line_screen_end: i32 = line_screen_start + line_height;
-
-            let ref wall_texture: Texture = textures[4];
-            let ref ceiling_texture: Texture = textures[6];
-            let ref floor_texture: Texture = textures[5];
-
-            let wall_texture_x: u32 = if intersection.cell_side == 0 {
-                (((intersection.y - (intersection.cell_y as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64).round() as u32
-            } else {
-                (((intersection.x - (intersection.cell_x as f64 * tile_size)) % tile_size) * (wall_texture.width - 1) as f64).round() as u32
-            };
 
             for y in 0..(self.projection_height as usize) {
                 let offset: usize = (y * pitch) + (x * 4);

@@ -95,12 +95,14 @@ fn main() {
     textures.push(load_texture(5, "floor-tile.png"));
     textures.push(load_texture(6, "ceiling-tile.png"));
     textures.push(load_texture(7, "fists.png")); 
+    textures.push(load_texture(8, "shane.png"));
 
     let mut sprites: Vec<Sprite> = Vec::new();
     sprites.push(Sprite::new(2.5, 2.5, 2));
     sprites.push(Sprite::new(4.5, 7.5, 1));
     sprites.push(Sprite::new(2.5, 7.5, 1));
     sprites.push(Sprite::new(2.5, 10.5, 0));
+    sprites.push(Sprite::new(14.5, 14.5, 2));
 
     let mut map: Vec<Option<Cell>> = Vec::new();
     map.resize(MAP_SIZE * MAP_SIZE, None);
