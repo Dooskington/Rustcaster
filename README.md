@@ -1,6 +1,6 @@
 # Rustcaster
 
-This is a fairly lightweight raycaster, which supports ceilings, floors, and sprites. It uses SDL2 for windowing, rendering, and image loading.
+This is a fairly lightweight raycaster, which supports ceilings, floors, and sprites. It uses SDL2 for windowing, rendering, and image loading. It's the first actual program I've written in Rust, so it's likely that it isn't idiomatic. Feel free to leave any feedback!
 
 ![Rustcaster](http://declanhopkins.com/static/images/screenshots/rustcaster.png)
 
