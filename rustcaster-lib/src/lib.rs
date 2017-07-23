@@ -1,20 +1,38 @@
-pub const MAP_SIZE: usize = 30;
 pub const TWO_PI: f64 = 2.0 * std::f64::consts::PI;
-pub const COLOR_BLACK: Color = Color { r: 255, g: 255, b: 255, a: 255 };
+
+pub const COLOR_BLACK: Color = Color { r: 0, g: 0, b: 0, a: 255 };
+pub const COLOR_RED: Color = Color { r: 255, g: 0, b: 0, a: 255 };
+pub const COLOR_GREEN: Color = Color { r: 0, g: 255, b: 0, a: 255 };
+pub const COLOR_BLUE: Color = Color { r: 0, g: 0, b: 255, a: 255 };
 pub const COLOR_MAGENTA: Color = Color { r: 255, g: 0, b: 255, a: 255 };
+
+pub struct Map {
+    pub width: u32,
+    pub height: u32,
+    pub floor_texture_id: u32,
+    pub ceiling_texture_id: u32,
+    pub cells: Vec<Option<Cell>>,
+    pub sprites: Vec<Sprite>
+}
+
+impl Map {
+    pub fn get_cell(&self, x: u32, y: u32) -> Option<Cell> {
+        self.cells[((y * self.width) + x) as usize]
+    }
+}
 
 #[derive(Copy, Clone)]
 pub struct Cell {
-    pub x: i32,
-    pub y: i32,
+    pub x: u32,
+    pub y: u32,
     pub texture_id: u32
 }
 
 pub struct RayIntersection {
     pub x: f64,
     pub y: f64,
-    pub cell_x: i32,
-    pub cell_y: i32,
+    pub cell_x: u32,
+    pub cell_y: u32,
     pub cell_side: u8,
     pub distance: f64
 }
@@ -65,6 +83,15 @@ pub struct Color {
     pub a: u8
 }
 
+impl PartialEq for Color {
+    fn eq(&self, other: &Color) -> bool {
+        (self.r == other.r) &&
+        (self.g == other.g) &&
+        (self.b == other.b) &&
+        (self.a == other.a)
+    }
+}
+
 pub struct Engine {
     pub field_of_view: f64,
     pub projection_width: u32,
@@ -84,7 +111,7 @@ impl Engine {
         }
     }
 
-    pub fn render(&mut self, render_buffer: &mut [u8], pitch: usize, cells: &Vec<Option<Cell>>, sprites: &mut Vec<Sprite>, textures: &Vec<Texture>, origin_x: f64, origin_y: f64, rotation: f64) {
+    pub fn render(&mut self, render_buffer: &mut [u8], pitch: usize, map: &mut Map, textures: &Vec<Texture>, origin_x: f64, origin_y: f64, rotation: f64) {
         // Cast rays to render map
         for x in 0..(self.projection_width as usize) {
             // Where on the screen the ray goes through
@@ -95,7 +122,7 @@ impl Engine {
 
             // Calculate the angle of the ray, and cast it against the map
             let ray_angle: f64 = (ray_screen_x / ray_view_dist).asin() + rotation;
-            let intersection: RayIntersection = self.cast_ray(origin_x, origin_y, ray_angle, cells);
+            let intersection: RayIntersection = self.cast_ray(origin_x, origin_y, ray_angle, &map);
 
             // Calculate the actual distance
             let intersection_distance = intersection.distance.sqrt() * (rotation - ray_angle).cos();
@@ -103,7 +130,7 @@ impl Engine {
 
             let cell_width = 1.0;
             let cell_height = 1.0;
-            let cell = cells[((intersection.cell_y * MAP_SIZE as i32) + intersection.cell_x) as usize].unwrap();
+            let cell = map.get_cell(intersection.cell_x, intersection.cell_y).unwrap(); // TODO: Should we be unwrapping here?
 
             let ref wall_texture: Texture = textures[cell.texture_id as usize];
             let ref ceiling_texture: Texture = textures[6];
@@ -203,7 +230,7 @@ impl Engine {
         }
 
         // Sort sprites (far to near)
-        sprites.sort_by(|a, b| {
+        map.sprites.sort_by(|a, b| {
             let a_distance: f64 = (a.x - origin_x).powi(2) + (a.y - origin_y).powi(2);
             let b_distance: f64 = (b.x - origin_x).powi(2) + (b.y - origin_y).powi(2);
 
@@ -211,17 +238,17 @@ impl Engine {
         });
 
         // Render sprites
-        for sprite in sprites.iter() {
+        for sprite in map.sprites.iter() {
             let distance_x: f64 = sprite.x - origin_x;
             let distance_y: f64 = sprite.y - origin_y;
 
             // The angle between the player and the sprite
             let mut theta: f64 = f64::atan2(distance_y, distance_x);
-            theta = self.wrap_angle(theta);
+            theta = wrap_angle(theta);
 
             // The angle between the player and the sprite, relative to the player rotation
             let mut gamma: f64 = theta - rotation;
-            gamma = self.wrap_angle(gamma);
+            gamma = wrap_angle(gamma);
 
             let sprite_distance: f64 = f64::sqrt(distance_x.powi(2) + distance_y.powi(2)) * f64::cos(rotation - theta);
 
@@ -238,10 +265,10 @@ impl Engine {
             let sprite_screen_end_y: i32 = (sprite_height / 2) + (self.projection_height as i32 / 2);
 
             let mut camera_min_angle: f64 = -self.field_of_view / 2.0;
-            camera_min_angle = self.wrap_angle(camera_min_angle);
+            camera_min_angle = wrap_angle(camera_min_angle);
 
             let mut camera_max_angle: f64 = self.field_of_view / 2.0;
-            camera_max_angle = self.wrap_angle(camera_max_angle);
+            camera_max_angle = wrap_angle(camera_max_angle);
 
             let ref texture: Texture = textures[sprite.texture_id as usize];
 
@@ -286,29 +313,21 @@ impl Engine {
         self.depth_buffer.clear();
     }
 
-    fn wrap_angle(&self, angle: f64) -> f64 {
-        if angle < 0.0 {
-            return angle + TWO_PI;
-        }
-        else if angle >= TWO_PI {
-            return angle - TWO_PI;
-        }
+    fn cast_ray(&self, origin_x: f64, origin_y: f64, angle: f64, map: &Map) -> RayIntersection {
+        // TODO
+        // Fix breaking when there is no cell
 
-        angle
-    }
-
-    fn cast_ray(&self, origin_x: f64, origin_y: f64, angle: f64, map: &Vec<Option<Cell>>) -> RayIntersection {
         let mut intersection_distance: f64 = 0.0; // Distance from origin to intersection
         let mut x: f64 = 0.0; // Intersection point x
         let mut y: f64 = 0.0; // Intersection point y
-        let mut cell_x: i32 = 0; // Intersected cell x
-        let mut cell_y: i32 = 0; // Intersected cell y
+        let mut cell_x: u32 = 0; // Intersected cell x
+        let mut cell_y: u32 = 0; // Intersected cell y
         let mut cell_edge: u8 = 0; // 0 for y-axis, or 1 for x-axis
 
         let cell_size: f64 = 1.0;
 
         // Calculate the quadrant up the ray
-        let angle = self.wrap_angle(angle);
+        let angle = wrap_angle(angle);
         let is_ray_right: bool = angle > (TWO_PI * 0.75) || angle < (TWO_PI * 0.25);
         let is_ray_up: bool = angle < 0.0 || angle > std::f64::consts::PI;
 
@@ -322,11 +341,11 @@ impl Engine {
         let mut ray_position_x: f64 = if is_ray_right { f64::ceil(origin_x) } else { f64::floor(origin_x) };
         let mut ray_position_y: f64 = origin_y + (ray_position_x - origin_x) * slope;
 
-        while (ray_position_x >= 0.0) && (ray_position_x < MAP_SIZE as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_SIZE as f64) {
-            let tile_map_x: i32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -cell_size })) as i32;
-            let tile_map_y: i32 = f64::floor(ray_position_y) as i32;
+        while (ray_position_x >= 0.0) && (ray_position_x < map.width as f64) && (ray_position_y >= 0.0) && (ray_position_y < map.height as f64) {
+            let tile_map_x: u32 = f64::floor(ray_position_x + (if is_ray_right { 0.0 } else { -cell_size })) as u32;
+            let tile_map_y: u32 = f64::floor(ray_position_y) as u32;
 
-            if let Some(cell) = map[((tile_map_y * MAP_SIZE as i32) + tile_map_x) as usize] {
+            if let Some(cell) = map.get_cell(tile_map_x, tile_map_y) {
                 let distance_x: f64 = ray_position_x - origin_x;
                 let distance_y: f64 = ray_position_y - origin_y;
                 intersection_distance = distance_x.powi(2) + distance_y.powi(2);
@@ -356,11 +375,11 @@ impl Engine {
         ray_position_y = if is_ray_up { f64::floor(origin_y) } else { f64::ceil(origin_y) };
         ray_position_x = origin_x + (ray_position_y - origin_y) * slope;
 
-        while (ray_position_x >= 0.0) && (ray_position_x < MAP_SIZE as f64) && (ray_position_y >= 0.0) && (ray_position_y < MAP_SIZE as f64) {
-            let tile_map_x: i32 = f64::floor(ray_position_x) as i32;
-            let tile_map_y: i32 = f64::floor(ray_position_y + (if is_ray_up { -cell_size } else { 0.0 })) as i32;
+        while (ray_position_x >= 0.0) && (ray_position_x < map.width as f64) && (ray_position_y >= 0.0) && (ray_position_y < map.height as f64) {
+            let tile_map_x: u32 = f64::floor(ray_position_x) as u32;
+            let tile_map_y: u32 = f64::floor(ray_position_y + (if is_ray_up { -cell_size } else { 0.0 })) as u32;
 
-            if let Some(cell) = map[((tile_map_y * MAP_SIZE as i32) + tile_map_x) as usize] {
+            if let Some(cell) = map.get_cell(tile_map_x, tile_map_y) {
                 let distance_x: f64 = ray_position_x - origin_x;
                 let distance_y: f64 = ray_position_y - origin_y;
                 let x_intersection_distance = distance_x.powi(2) + distance_y.powi(2);
@@ -392,4 +411,15 @@ impl Engine {
             distance: intersection_distance
         }
     }
+}
+
+pub fn wrap_angle(angle: f64) -> f64 {
+    if angle < 0.0 {
+        return angle + TWO_PI;
+    }
+    else if angle >= TWO_PI {
+        return angle - TWO_PI;
+    }
+
+    angle
 }

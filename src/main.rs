@@ -2,6 +2,7 @@ extern crate rustcaster;
 extern crate sdl2;
 extern crate time;
 
+use std::str;
 use std::path::*;
 use rustcaster::*;
 use sdl2::pixels::PixelFormatEnum;
@@ -12,36 +13,6 @@ pub const WINDOW_TITLE: &'static str = "Rustcaster";
 pub const WINDOW_WIDTH: u32 = 640;
 pub const WINDOW_HEIGHT: u32 = 480;
 pub const FIELD_OF_VIEW: f64 = 90.0;
-
-pub fn load_texture(texture_id: u32, file_name: &str) -> Texture {
-    let path_str: &str = &format!("res/{}", file_name);
-    let path = Path::new(path_str);
-    let surface = Surface::from_file(path).unwrap();
-
-    let mut pixels: Vec<Color> = Vec::new();
-    pixels.resize((surface.width() * surface.height()) as usize, COLOR_MAGENTA);
-
-    surface.with_lock(|surface_buffer: &[u8]| {
-        for x in 0..surface.width() {
-            for y in 0..surface.height() {
-                let texture_pixel_index =
-                    (y as usize * surface.pitch() as usize) +
-                    (x as usize * surface.pixel_format_enum().byte_size_per_pixel());
-
-                let color = Color {
-                    r: surface_buffer[texture_pixel_index],
-                    g: surface_buffer[texture_pixel_index + 1],
-                    b: surface_buffer[texture_pixel_index + 2],
-                    a: surface_buffer[texture_pixel_index + 3]
-                };
-
-                pixels[((y * surface.width()) + x) as usize] = color;
-            }
-        }
-    });
-
-    Texture::new(texture_id, surface.width(), surface.height(), pixels)
-}
 
 fn main() {
     // Initialize SDL2
@@ -81,41 +52,24 @@ fn main() {
     let mut input_e: bool = false;
 
     let move_speed: f64 = 6.0;
-    let rotation_speed: f64 = f64::to_radians(145.0);
+    let rotation_speed: f64 = f64::to_radians(180.0);
     let mut player_x: f64 = 1.5;
     let mut player_y: f64 = 1.5;
     let mut player_rotation: f64 = 0.0;
 
     let mut textures: Vec<Texture> = Vec::new();
-    textures.push(load_texture(0, "barrel-0.png"));
-    textures.push(load_texture(1, "statue-0.png"));
-    textures.push(load_texture(2, "shane-transparent.png"));
-    textures.push(load_texture(3, "gravestone.png"));
-    textures.push(load_texture(4, "wall-stone.png"));
-    textures.push(load_texture(5, "floor-tile.png"));
-    textures.push(load_texture(6, "ceiling-tile.png"));
-    textures.push(load_texture(7, "fists.png")); 
-    textures.push(load_texture(8, "shane.png"));
+    textures.push(load_texture(0, "res/barrel-0.png"));
+    textures.push(load_texture(1, "res/statue-0.png"));
+    textures.push(load_texture(2, "res/shane-transparent.png"));
+    textures.push(load_texture(3, "res/gravestone.png"));
+    textures.push(load_texture(4, "res/wall-stone.png"));
+    textures.push(load_texture(5, "res/floor-tile.png"));
+    textures.push(load_texture(6, "res/ceiling-tile.png"));
+    textures.push(load_texture(7, "res/fists.png"));
+    textures.push(load_texture(8, "res/shane.png"));
 
-    let mut sprites: Vec<Sprite> = Vec::new();
-    sprites.push(Sprite::new(2.5, 2.5, 2));
-    sprites.push(Sprite::new(4.5, 7.5, 1));
-    sprites.push(Sprite::new(2.5, 7.5, 1));
-    sprites.push(Sprite::new(2.5, 10.5, 0));
-    sprites.push(Sprite::new(14.5, 14.5, 2));
-
-    let mut map: Vec<Option<Cell>> = Vec::new();
-    map.resize(MAP_SIZE * MAP_SIZE, None);
-    
-    // Construct map
-    for x in 0..MAP_SIZE {
-        for y in 0..MAP_SIZE {
-            if x == 0 || x == (MAP_SIZE - 1) || y == 0 || y == (MAP_SIZE - 1) {
-                let cell: Cell = Cell {x: x as i32, y: y as i32, texture_id: 4};
-                map[((y * MAP_SIZE) + x)] = Some(cell);
-            }
-        }
-    }
+    let mut map = load_map("res/maps/dungeon.png")
+    .expect("Failed to load map!");
 
     let mut engine = Engine::new(FIELD_OF_VIEW.to_radians(), WINDOW_WIDTH, WINDOW_HEIGHT);
 
@@ -169,7 +123,7 @@ fn main() {
                 Event::KeyUp { keycode: Some(Keycode::Down), .. } | Event::KeyUp { keycode: Some(Keycode::S), .. } => {
                     input_down = false;
                 },
-                
+
                 _ => {}
             }
         }
@@ -178,71 +132,47 @@ fn main() {
         let current_time = time::now();
         let elapsed_time = current_time - last_tick_time;
         let delta_time: f64 = (elapsed_time.num_nanoseconds().unwrap() as f64) / 1_000_000_000_f64;
-        let total_time = current_time - start_time;
         render_timer = render_timer + elapsed_time;
 
-        // Tick
-        if input_up
-        {
-            let new_player_x = player_x + ((f64::cos(player_rotation) * move_speed) * delta_time);
-            let next_tile_x = map[((player_y as usize * MAP_SIZE) + new_player_x as usize)];
-            if next_tile_x.is_none() {
-                player_x = new_player_x;
-            }
+        // Calculate velocity based on input
+        let mut velocity_x: f64 = 0.0;
+        let mut velocity_y: f64 = 0.0;
 
-            let new_player_y = player_y + ((f64::sin(player_rotation) * move_speed) * delta_time);
-            let next_tile_y = map[((new_player_y as usize * MAP_SIZE) + player_x as usize)];
-            if next_tile_y.is_none() {
-                player_y = new_player_y;
-            }
+        if input_up {
+            velocity_x += player_rotation.cos() * move_speed;
+            velocity_y += player_rotation.sin() * move_speed;
         }
-        if input_down
-        {
-            let new_player_x = player_x - ((f64::cos(player_rotation) * move_speed) * delta_time);
-            let next_tile_x = map[((player_y as usize * MAP_SIZE) + new_player_x as usize)];
-            if next_tile_x.is_none() {
-                player_x = new_player_x;
-            }
-
-            let new_player_y = player_y - ((f64::sin(player_rotation) * move_speed) * delta_time);
-            let next_tile_y = map[((new_player_y as usize * MAP_SIZE) + player_x as usize)];
-            if next_tile_y.is_none() {
-                player_y = new_player_y;
-            }
+        if input_down {
+            velocity_x -= player_rotation.cos() * move_speed;
+            velocity_y -= player_rotation.sin() * move_speed;
         }
-        if input_q
-        {
-            let new_player_x = player_x - ((f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_x = map[((player_y as usize * MAP_SIZE) + new_player_x as usize)];
-            if next_tile_x.is_none() {
-                player_x = new_player_x;
-            }
-
-            let new_player_y = player_y - ((f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_y = map[((new_player_y as usize * MAP_SIZE) + player_x as usize)];
-            if next_tile_y.is_none() {
-                player_y = new_player_y;
-            }
+        if input_q {
+            velocity_x -= f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed;
+            velocity_y -= f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed;
         }
-        if input_e
-        {
-            let new_player_x = player_x + ((f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_x = map[((player_y as usize * MAP_SIZE) + new_player_x as usize)];
-            if next_tile_x.is_none() {
-                player_x = new_player_x;
-            }
-
-            let new_player_y = player_y + ((f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed) * delta_time);
-            let next_tile_y = map[((new_player_y as usize * MAP_SIZE) + player_x as usize)];
-            if next_tile_y.is_none() {
-                player_y = new_player_y;
-            }
+        if input_e {
+            velocity_x += f64::cos(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed;
+            velocity_y += f64::sin(player_rotation + (std::f64::consts::PI / 2.0)) * move_speed;
         }
         if input_left {
             player_rotation = wrap_angle(player_rotation - (rotation_speed * delta_time));
         }
         if input_right {
             player_rotation = wrap_angle(player_rotation + (rotation_speed * delta_time));
+        }
+
+        // Apply velocity
+        if (velocity_x != 0.0) || (velocity_y != 0.0) {
+            let new_position_x = player_x + (velocity_x * delta_time);
+            let new_position_y = player_y + (velocity_y * delta_time);
+
+            if map.get_cell(new_position_x.trunc() as u32, player_y.trunc() as u32).is_none() {
+                player_x = new_position_x;
+            }
+
+            if map.get_cell(player_x.trunc() as u32, new_position_y.trunc() as u32).is_none() {
+                player_y = new_position_y;
+            }
         }
 
         last_tick_time = current_time;
@@ -254,7 +184,7 @@ fn main() {
             canvas.clear();
 
             render_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                engine.render(buffer, pitch, &map, &mut sprites, &textures, player_x, player_y, player_rotation);
+                engine.render(buffer, pitch, &mut map, &textures, player_x, player_y, player_rotation);
             }).unwrap();
 
             canvas.copy_ex(&render_texture, None, None, 0.0, None, false, false).unwrap();
@@ -263,13 +193,68 @@ fn main() {
     }
 }
 
-fn wrap_angle(angle: f64) -> f64 {
-    if angle < 0.0 {
-        return angle + TWO_PI;
-    }
-    else if angle >= TWO_PI {
-        return angle - TWO_PI;
+pub fn load_texture(texture_id: u32, file_name: &str) -> Texture {
+    let surface = Surface::from_file(Path::new(file_name)).unwrap();
+    let mut pixels: Vec<Color> = Vec::new();
+    pixels.resize((surface.width() * surface.height()) as usize, COLOR_MAGENTA);
+
+    surface.with_lock(|surface_buffer: &[u8]| {
+        for x in 0..surface.width() {
+            for y in 0..surface.height() {
+                let texture_pixel_index =
+                    (y as usize * surface.pitch() as usize) +
+                    (x as usize * surface.pixel_format_enum().byte_size_per_pixel());
+
+                let color = Color {
+                    r: surface_buffer[texture_pixel_index],
+                    g: surface_buffer[texture_pixel_index + 1],
+                    b: surface_buffer[texture_pixel_index + 2],
+                    a: surface_buffer[texture_pixel_index + 3]
+                };
+
+                pixels[((y * surface.width()) + x) as usize] = color;
+            }
+        }
+    });
+
+    Texture::new(texture_id, surface.width(), surface.height(), pixels)
+}
+
+pub fn load_map(file_name: &str) -> std::io::Result<Map> {
+    let texture: Texture = load_texture(0, file_name);
+
+    let mut cells: Vec<Option<Cell>> = Vec::new();
+    cells.resize((texture.width * texture.height) as usize, None);
+
+    let mut sprites: Vec<Sprite> = Vec::new();
+
+    for x in 0..texture.width {
+        for y in 0..texture.height {
+            let index: usize = ((y * texture.width) + x) as usize;
+            let pixel: Color = texture.pixels[index];
+
+            if pixel == COLOR_BLACK {
+                let cell: Cell = Cell {x: x as u32, y: y as u32, texture_id: 4}; // Wall
+                cells[index] = Some(cell);
+            }
+            else if pixel == COLOR_RED {
+                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, 1)); // Statue
+            }
+            else if pixel == COLOR_GREEN {
+                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, 0)); // Barrel
+            }
+            else if pixel == COLOR_BLUE {
+                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, 3)); // Gravestone
+            }
+        }
     }
 
-    angle
+    Ok(Map {
+        width: texture.width,
+        height: texture.height,
+        floor_texture_id: 5,
+        ceiling_texture_id: 6,
+        cells: cells,
+        sprites: sprites
+    })
 }
