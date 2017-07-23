@@ -14,6 +14,13 @@ pub const WINDOW_WIDTH: u32 = 640;
 pub const WINDOW_HEIGHT: u32 = 480;
 pub const FIELD_OF_VIEW: f64 = 90.0;
 
+pub const TEXTURE_ID_BARREL: u32 = 0;
+pub const TEXTURE_ID_STATUE: u32 = 1;
+pub const TEXTURE_ID_GRAVESTONE: u32 = 2;
+pub const TEXTURE_ID_WALL: u32 = 3;
+pub const TEXTURE_ID_FLOOR: u32 = 4;
+pub const TEXTURE_ID_CEILING: u32 = 5;
+
 fn main() {
     // Initialize SDL2
     let sdl_context = ::sdl2::init().unwrap();
@@ -58,15 +65,12 @@ fn main() {
     let mut player_rotation: f64 = 0.0;
 
     let mut textures: Vec<Texture> = Vec::new();
-    textures.push(load_texture(0, "res/barrel-0.png"));
-    textures.push(load_texture(1, "res/statue-0.png"));
-    textures.push(load_texture(2, "res/shane-transparent.png"));
-    textures.push(load_texture(3, "res/gravestone.png"));
-    textures.push(load_texture(4, "res/wall-stone.png"));
-    textures.push(load_texture(5, "res/floor-tile.png"));
-    textures.push(load_texture(6, "res/ceiling-tile.png"));
-    textures.push(load_texture(7, "res/fists.png"));
-    textures.push(load_texture(8, "res/shane.png"));
+    textures.push(load_texture(TEXTURE_ID_BARREL,     "res/barrel.png"));
+    textures.push(load_texture(TEXTURE_ID_STATUE,     "res/statue.png"));
+    textures.push(load_texture(TEXTURE_ID_GRAVESTONE, "res/gravestone.png"));
+    textures.push(load_texture(TEXTURE_ID_WALL,       "res/wall-stone.png"));
+    textures.push(load_texture(TEXTURE_ID_FLOOR,      "res/floor-tile.png"));
+    textures.push(load_texture(TEXTURE_ID_CEILING,    "res/ceiling-tile.png"));
 
     let mut map = load_map("res/maps/dungeon.png")
     .expect("Failed to load map!");
@@ -76,6 +80,12 @@ fn main() {
     // Engine loop
     let mut sdl_event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
+        // Calculate elapsed time
+        let current_time = time::now();
+        let elapsed_time = current_time - last_tick_time;
+        let delta_time: f64 = (elapsed_time.num_nanoseconds().unwrap() as f64) / 1_000_000_000_f64;
+        render_timer = render_timer + elapsed_time;
+
         for event in sdl_event_pump.poll_iter() {
             use sdl2::event::*;
             use sdl2::keyboard::*;
@@ -127,12 +137,6 @@ fn main() {
                 _ => {}
             }
         }
-
-        // Calculate elapsed time
-        let current_time = time::now();
-        let elapsed_time = current_time - last_tick_time;
-        let delta_time: f64 = (elapsed_time.num_nanoseconds().unwrap() as f64) / 1_000_000_000_f64;
-        render_timer = render_timer + elapsed_time;
 
         // Calculate velocity based on input
         let mut velocity_x: f64 = 0.0;
@@ -234,17 +238,17 @@ pub fn load_map(file_name: &str) -> std::io::Result<Map> {
             let pixel: Color = texture.pixels[index];
 
             if pixel == COLOR_BLACK {
-                let cell: Cell = Cell {x: x as u32, y: y as u32, texture_id: 4}; // Wall
+                let cell: Cell = Cell {x: x as u32, y: y as u32, texture_id: TEXTURE_ID_WALL}; // Wall
                 cells[index] = Some(cell);
             }
             else if pixel == COLOR_RED {
-                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, 1)); // Statue
+                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, TEXTURE_ID_STATUE));
             }
             else if pixel == COLOR_GREEN {
-                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, 0)); // Barrel
+                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, TEXTURE_ID_BARREL));
             }
             else if pixel == COLOR_BLUE {
-                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, 3)); // Gravestone
+                sprites.push(Sprite::new(x as f64 + 0.5, y as f64 + 0.5, TEXTURE_ID_GRAVESTONE));
             }
         }
     }
@@ -252,8 +256,8 @@ pub fn load_map(file_name: &str) -> std::io::Result<Map> {
     Ok(Map {
         width: texture.width,
         height: texture.height,
-        floor_texture_id: 5,
-        ceiling_texture_id: 6,
+        floor_texture_id: TEXTURE_ID_FLOOR,
+        ceiling_texture_id: TEXTURE_ID_CEILING,
         cells: cells,
         sprites: sprites
     })

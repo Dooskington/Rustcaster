@@ -130,11 +130,13 @@ impl Engine {
 
             let cell_width = 1.0;
             let cell_height = 1.0;
-            let cell = map.get_cell(intersection.cell_x, intersection.cell_y).unwrap(); // TODO: Should we be unwrapping here?
+
+            let cell = map.get_cell(intersection.cell_x, intersection.cell_y)
+            .expect("There was an intersection, but no cell!");
 
             let ref wall_texture: Texture = textures[cell.texture_id as usize];
-            let ref ceiling_texture: Texture = textures[6];
-            let ref floor_texture: Texture = textures[5];
+            let ref ceiling_texture: Texture = textures[map.ceiling_texture_id as usize];
+            let ref floor_texture: Texture = textures[map.floor_texture_id as usize];
 
             // Calculate the x texel of this wall strip
             let wall_texture_x: u32 = if intersection.cell_side == 0 {
@@ -297,7 +299,6 @@ impl Engine {
                     let offset = ((sprite_screen_col * pitch as i32) + (sprite_screen_row * 4)) as usize;
                     let pixel = texture.get_pixel(texture_x, texture_y);
 
-                    // if pixel is transparent, don't draw it
                     if pixel.a == 0 {
                         continue;
                     }
@@ -315,7 +316,7 @@ impl Engine {
 
     fn cast_ray(&self, origin_x: f64, origin_y: f64, angle: f64, map: &Map) -> RayIntersection {
         // TODO
-        // Fix breaking when there is no cell
+        // There is a bug where this function will crash the program if it never hits a cell.
 
         let mut intersection_distance: f64 = 0.0; // Distance from origin to intersection
         let mut x: f64 = 0.0; // Intersection point x
