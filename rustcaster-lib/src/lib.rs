@@ -258,8 +258,12 @@ impl Engine {
             let sprite_pixel_offset: f64 = f64::tan(gamma) * self.projection_distance;
             let sprite_screen_x: i32 = f64::round((self.projection_width as f64 / 2.0) + sprite_pixel_offset) as i32;
 
-            let sprite_height: i32 = (f64::round(self.projection_distance / sprite_distance) as i32).abs();
-            let sprite_width: i32 = (f64::round(self.projection_distance / sprite_distance) as i32).abs();
+            let sprite_height: i32 = (f64::round(self.projection_distance / sprite_distance) as i32).wrapping_abs();
+            let sprite_width: i32 = (f64::round(self.projection_distance / sprite_distance) as i32).wrapping_abs();
+
+            if (sprite_height <= 0) || (sprite_width <= 0) {
+                continue;
+            }
 
             let sprite_screen_start_x: i32 = sprite_screen_x - (sprite_width / 2);
             let sprite_screen_end_x: i32 = sprite_screen_x + (sprite_width / 2);
