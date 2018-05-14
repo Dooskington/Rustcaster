@@ -20,6 +20,7 @@ pub const TEXTURE_ID_GRAVESTONE: u32 = 2;
 pub const TEXTURE_ID_WALL: u32 = 3;
 pub const TEXTURE_ID_FLOOR: u32 = 4;
 pub const TEXTURE_ID_CEILING: u32 = 5;
+pub const TEXTURE_ID_DOOR: u32 = 6;
 
 fn main() {
     // Initialize SDL2
@@ -58,21 +59,22 @@ fn main() {
     let mut input_q: bool = false;
     let mut input_e: bool = false;
 
-    let move_speed: f64 = 6.0;
-    let rotation_speed: f64 = f64::to_radians(180.0);
+    let move_speed: f64 = 3.5;
+    let rotation_speed: f64 = f64::to_radians(150.0);
     let mut player_x: f64 = 1.5;
     let mut player_y: f64 = 1.5;
     let mut player_rotation: f64 = 0.0;
 
     let mut textures: Vec<Texture> = Vec::new();
     textures.push(load_texture(TEXTURE_ID_BARREL,     "res/barrel.png"));
-    textures.push(load_texture(TEXTURE_ID_STATUE,     "res/statue.png"));
+    textures.push(load_texture(TEXTURE_ID_STATUE,     "res/schindler.png"));
     textures.push(load_texture(TEXTURE_ID_GRAVESTONE, "res/gravestone.png"));
     textures.push(load_texture(TEXTURE_ID_WALL,       "res/wall-stone.png"));
     textures.push(load_texture(TEXTURE_ID_FLOOR,      "res/floor-tile.png"));
     textures.push(load_texture(TEXTURE_ID_CEILING,    "res/ceiling-tile.png"));
+    textures.push(load_texture(TEXTURE_ID_DOOR,       "res/door.png"));
 
-    let mut map = load_map("res/maps/dungeon.png")
+    let mut map = load_map("res/maps/temple.png")
     .expect("Failed to load map!");
 
     let mut engine = Engine::new(FIELD_OF_VIEW.to_radians(), WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -239,6 +241,10 @@ pub fn load_map(file_name: &str) -> std::io::Result<Map> {
 
             if pixel == COLOR_BLACK {
                 let cell: Cell = Cell {x: x as u32, y: y as u32, texture_id: TEXTURE_ID_WALL}; // Wall
+                cells[index] = Some(cell);
+            }
+            else if pixel == COLOR_WHITE {
+                let cell: Cell = Cell {x: x as u32, y: y as u32, texture_id: TEXTURE_ID_DOOR};
                 cells[index] = Some(cell);
             }
             else if pixel == COLOR_RED {

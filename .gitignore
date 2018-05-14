@@ -2,3 +2,4 @@ target
 *.dll
 .vscode
 Cargo.lock
+.DS_STORE

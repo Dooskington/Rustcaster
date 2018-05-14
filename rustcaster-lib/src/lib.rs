@@ -1,6 +1,7 @@
 pub const TWO_PI: f64 = 2.0 * std::f64::consts::PI;
 
 pub const COLOR_BLACK: Color = Color { r: 0, g: 0, b: 0, a: 255 };
+pub const COLOR_WHITE: Color = Color { r: 255, g: 255, b: 255, a: 255 };
 pub const COLOR_RED: Color = Color { r: 255, g: 0, b: 0, a: 255 };
 pub const COLOR_GREEN: Color = Color { r: 0, g: 255, b: 0, a: 255 };
 pub const COLOR_BLUE: Color = Color { r: 0, g: 0, b: 255, a: 255 };
@@ -112,6 +113,8 @@ impl Engine {
     }
 
     pub fn render(&mut self, render_buffer: &mut [u8], pitch: usize, map: &mut Map, textures: &Vec<Texture>, origin_x: f64, origin_y: f64, rotation: f64) {
+        let light_radius: f32 = 5.0;
+
         // Cast rays to render map
         for x in 0..(self.projection_width as usize) {
             // Where on the screen the ray goes through
@@ -165,10 +168,10 @@ impl Engine {
                     let ceiling_straight_distance = (player_height / ceiling_row as f64) * self.projection_distance;
                     let angle_beta_radians = rotation - ray_angle;
 
-                    let floor_actual_distance = ceiling_straight_distance / angle_beta_radians.cos();
+                    let ceiling_actual_distance = ceiling_straight_distance / angle_beta_radians.cos();
 
-                    let mut ceiling_hit_x: f64 = origin_x - (floor_actual_distance * ray_angle.cos());
-                    let mut ceiling_hit_y: f64 = origin_y - (floor_actual_distance * ray_angle.sin());
+                    let mut ceiling_hit_x: f64 = origin_x - (ceiling_actual_distance * ray_angle.cos());
+                    let mut ceiling_hit_y: f64 = origin_y - (ceiling_actual_distance * ray_angle.sin());
 
                     ceiling_hit_x -= ceiling_hit_x.floor();
                     ceiling_hit_y -= ceiling_hit_y.floor();
@@ -176,7 +179,11 @@ impl Engine {
                     let texture_x: u32 = f64::floor(ceiling_hit_x * (ceiling_texture.width - 1) as f64) as u32;
                     let texture_y: u32 = f64::floor(ceiling_hit_y * (ceiling_texture.height - 1) as f64) as u32;
 
-                    let pixel = ceiling_texture.get_pixel(texture_x, texture_y);
+                    let mut pixel = ceiling_texture.get_pixel(texture_x, texture_y);
+                    let shade: f32 = self.calculate_shade(ceiling_straight_distance.abs() as f32, light_radius);
+                    pixel.r = (pixel.r as f32 * shade) as u8;
+                    pixel.g = (pixel.g as f32 * shade) as u8;
+                    pixel.b = (pixel.b as f32 * shade) as u8;
 
                     render_buffer[offset] = pixel.a;
                     render_buffer[offset + 1] = pixel.b;
@@ -188,7 +195,13 @@ impl Engine {
 
                     let line_y: i32 = y as i32 - line_screen_start;
                     let texture_y: u32 = f64::floor((line_y as f64 / line_height as f64) * (wall_texture.height - 1) as f64) as u32;
-                    let pixel = wall_texture.get_pixel(wall_texture_x, texture_y);
+
+                    let mut pixel = wall_texture.get_pixel(wall_texture_x, texture_y);
+
+                    let shade: f32 = self.calculate_shade(intersection_distance as f32, light_radius);
+                    pixel.r = (pixel.r as f32 * shade) as u8;
+                    pixel.g = (pixel.g as f32 * shade) as u8;
+                    pixel.b = (pixel.b as f32 * shade) as u8;
 
                     render_buffer[offset] = pixel.a;
                     render_buffer[offset + 1] = if intersection.cell_side == 1 { pixel.b } else { pixel.g / 2 };
@@ -214,7 +227,12 @@ impl Engine {
 
                     let texture_x: u32 = f64::floor(floor_hit_x * (floor_texture.width - 1) as f64) as u32;
                     let texture_y: u32 = f64::floor(floor_hit_y * (floor_texture.height - 1) as f64) as u32;
-                    let pixel = floor_texture.get_pixel(texture_x, texture_y);
+
+                    let mut pixel = floor_texture.get_pixel(texture_x, texture_y);
+                    let shade: f32 = self.calculate_shade(floor_straight_distance as f32, light_radius);
+                    pixel.r = (pixel.r as f32 * shade) as u8;
+                    pixel.g = (pixel.g as f32 * shade) as u8;
+                    pixel.b = (pixel.b as f32 * shade) as u8;
 
                     render_buffer[offset] = pixel.a;
                     render_buffer[offset + 1] = pixel.b;
@@ -253,6 +271,7 @@ impl Engine {
             gamma = wrap_angle(gamma);
 
             let sprite_distance: f64 = f64::sqrt(distance_x.powi(2) + distance_y.powi(2)) * f64::cos(rotation - theta);
+            let shade: f32 = self.calculate_shade(sprite_distance as f32, light_radius);
 
             // The number of pixels to offset from the center of the screen
             let sprite_pixel_offset: f64 = f64::tan(gamma) * self.projection_distance;
@@ -301,11 +320,15 @@ impl Engine {
                     let texture_y: u32 = f64::round((sprite_col as f64 / sprite_height as f64) * (texture.height - 1) as f64) as u32;
 
                     let offset = ((sprite_screen_col * pitch as i32) + (sprite_screen_row * 4)) as usize;
-                    let pixel = texture.get_pixel(texture_x, texture_y);
+                    let mut pixel = texture.get_pixel(texture_x, texture_y);
 
                     if pixel.a == 0 {
                         continue;
                     }
+
+                    pixel.r = (pixel.r as f32 * shade) as u8;
+                    pixel.g = (pixel.g as f32 * shade) as u8;
+                    pixel.b = (pixel.b as f32 * shade) as u8;
 
                     render_buffer[offset] = pixel.a;
                     render_buffer[offset + 1] = pixel.b;
@@ -351,8 +374,34 @@ impl Engine {
             let tile_map_y: u32 = f64::floor(ray_position_y) as u32;
 
             if let Some(cell) = map.get_cell(tile_map_x, tile_map_y) {
-                let distance_x: f64 = ray_position_x - origin_x;
-                let distance_y: f64 = ray_position_y - origin_y;
+                let mut distance_x: f64 = ray_position_x - origin_x;
+                let mut distance_y: f64 = ray_position_y - origin_y;
+
+                if cell.texture_id == 6 {
+                    let new_tile_map_x: u32 = f64::floor((ray_position_x + 0.5) + (if is_ray_right { 0.0 } else { -cell_size })) as u32;
+                    let new_tile_map_y: u32 = f64::floor(ray_position_y + (0.5 * slope)) as u32;
+
+                    // If we are not still within the door cell
+                    if ((new_tile_map_x != tile_map_x) || (new_tile_map_y != tile_map_y)) {
+                        ray_position_x += delta_x;
+                        ray_position_y += delta_y;
+
+                        continue;
+                    }
+
+                    ray_position_x += 0.5;
+                    ray_position_y += (0.5 * slope);
+
+                    // if door is open at this point
+                    let opened_percent : f64 = ray_position_y - (tile_map_y as f64);
+                    if opened_percent >= 0.25 {
+                        continue;
+                    }
+
+                    distance_x = ray_position_x - origin_x;
+                    distance_y = ray_position_y - origin_y;
+                }
+
                 intersection_distance = distance_x.powi(2) + distance_y.powi(2);
 
                 cell_edge = 0;
@@ -415,6 +464,10 @@ impl Engine {
             cell_side: cell_edge,
             distance: intersection_distance
         }
+    }
+
+    fn calculate_shade(&self, distance: f32, light_radius: f32) -> f32 {
+        ((light_radius - (distance as f32)) * (1.0 / light_radius)).max(0.0).min(1.0)
     }
 }
 
