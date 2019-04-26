@@ -12,6 +12,6 @@ If you are on Windows, you will need the SDL2 and SDL2 image .dlls in the workin
 
 ### Resources
 
-I do now own the example textures used, as they are from the game Blood, and are owned by Monolith Productions. Find more [here](http://www.bghq.com/textures.php?game=blood).
+I do not own the example textures used, as they are from the game Blood, and are owned by Monolith Productions. Find more [here](http://www.bghq.com/textures.php?game=blood).
 
 ![Rustcaster](https://i.imgur.com/92rrixn.png)
